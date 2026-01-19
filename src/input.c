@@ -1,3 +1,4 @@
+#include "strbuf.h"
 #include "vec.h"
 #include <readline/readline.h>
 #include <stdbool.h>
@@ -22,32 +23,31 @@ static bool has_unfinished_quote(const char *s) {
   return in_single || in_double;
 }
 
-typedef VEC(char) StringBuilder;
 char *read_input() {
-  StringBuilder sb = {0};
+  StringBuffer sb = {0};
   char *line = readline("$ ");
   if (!line)
     return NULL;
 
   while (line) {
-    size_t len = strlen(line);
+    size_t length = strlen(line);
+    bool newline_escaped = false;
 
-    if (len > 0 && line[len - 1] == '\\') {
-      for (size_t i = 0; i < len - 1; ++i) {
-        vec_push(&sb, line[i]);
-      }
-      free(line);
+    if (length > 0 && line[length - 1] == '\\') {
+      line[length - 1] = '\0';
+      newline_escaped = true;
+    }
+
+    strbuf_append(&sb, line);
+    free(line);
+
+    if (newline_escaped) {
       line = readline("> ");
       continue;
     }
 
-    for (size_t i = 0; i < len; ++i) {
-      vec_push(&sb, line[i]);
-    }
-    free(line);
-
     if (has_unfinished_quote(sb.data)) {
-      vec_push(&sb, '\n');
+      strbuf_push(&sb, '\n');
       line = readline("> ");
       continue;
     }
@@ -55,6 +55,6 @@ char *read_input() {
     break;
   }
 
-  vec_push(&sb, '\0');
+  strbuf_push(&sb, '\0');
   return sb.data;
 }

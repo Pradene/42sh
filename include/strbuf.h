@@ -1,21 +1,21 @@
 #pragma once
 
+#include <stddef.h>
 #include <string.h>
 
-#define VEC(T)                                                                 \
-  struct {                                                                     \
-    T *data;                                                                   \
-    size_t size;                                                               \
-    size_t capacity;                                                           \
-  }
+typedef struct {
+  char *data;
+  size_t size;
+  size_t capacity;
+} StringBuffer;
 
 // Free vector memory
-#define vec_free(v)                                                            \
+#define strbuf_free(v)                                                         \
   ((v)->data ? free((v)->data) : (void)0, (v)->data = NULL, (v)->size = 0,     \
    (v)->capacity = 0)
 
 // Reserve capacity (internal helper)
-#define vec_reserve(v, n)                                                      \
+#define strbuf_reserve(v, n)                                                   \
   ((n) > (v)->capacity                                                         \
        ? (typeof((v)->data))realloc((v)->data, (n) * sizeof(*(v)->data))       \
              ? ((v)->data = (typeof((v)->data))realloc(                        \
@@ -25,39 +25,51 @@
        : (void)0)
 
 // Push an element to the back
-#define vec_push(v, val)                                                       \
+#define strbuf_push(v, val)                                                    \
   ((v)->size >= (v)->capacity                                                  \
-       ? vec_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2)          \
+       ? strbuf_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2)       \
        : (void)0,                                                              \
    (v)->data[(v)->size++] = (val))
 
+// Append a cstr to the back (concat)
+#define strbuf_append(v, cstr)                                                 \
+  do {                                                                         \
+    size_t len = strlen(cstr);                                                 \
+    while ((v)->size + len >= (v)->capacity) {                                 \
+      strbuf_reserve(v, ((v)->capacity == 0) ? 16 : (v)->capacity * 2);        \
+    }                                                                          \
+    for (size_t i = 0; i < len; ++i) {                                         \
+      (v)->data[(v)->size++] = cstr[i];                                        \
+    }                                                                          \
+  } while (0)
+
 // Pop an element from the back
-#define vec_pop(v) ((v)->size > 0 ? (v)->size-- : 0)
+#define strbuf_pop(v) ((v)->size > 0 ? (v)->size-- : 0)
 
 // Get element at index
-#define vec_at(v, i) ((v)->data[i])
+#define strbuf_at(v, i) ((v)->data[i])
 
 // Get size
-#define vec_size(v) ((v)->size)
+#define strbuf_size(v) ((v)->size)
 
 // Get capacity
-#define vec_capacity(v) ((v)->capacity)
+#define strbuf_capacity(v) ((v)->capacity)
 
-// Clear the vector (keep capacity)
-#define vec_clear(v) ((v)->size = 0)
+// Clear the strbuf (keep capacity)
+#define strbuf_clear(v) ((v)->size = 0)
 
 // Get pointer to first element
-#define vec_begin(v) ((v)->data)
+#define strbuf_begin(v) ((v)->data)
 
 // Get pointer to one past last element
-#define vec_end(v) ((v)->data + (v)->size)
+#define strbuf_end(v) ((v)->data + (v)->size)
 
 // Insert at index
-#define vec_insert(v, i, val)                                                  \
+#define strbuf_insert(v, i, val)                                               \
   do {                                                                         \
     if ((v)->size >= (v)->capacity) {                                          \
       size_t new_cap = ((v)->capacity == 0) ? 8 : (v)->capacity * 2;           \
-      vec_reserve(v, new_cap);                                                 \
+      strbuf_reserve(v, new_cap);                                              \
     }                                                                          \
     if ((i) < (v)->size) {                                                     \
       memmove(&(v)->data[(i) + 1], &(v)->data[i],                              \
@@ -68,7 +80,7 @@
   } while (0)
 
 // Remove at index
-#define vec_remove(v, i)                                                       \
+#define strbuf_remove(v, i)                                                    \
   do {                                                                         \
     if ((i) < (v)->size) {                                                     \
       if ((i) < (v)->size - 1) {                                               \
