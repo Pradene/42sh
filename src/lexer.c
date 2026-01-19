@@ -4,9 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-static bool charset_contains(const char *set, char c) {
-  return strchr(set, c) != NULL;
-}
+static bool charset_contains(const char *set, char c) { return strchr(set, c); }
 
 static bool match(const char *s1, const char *s2) {
   return !strncmp(s1, s2, strlen(s1));
@@ -61,13 +59,12 @@ const char *token_type_str(TokenType type) {
 
 Token next_token(char *s, size_t *i) {
   while (s[*i]) {
+    size_t start = *i;
+
     if (isspace(s[*i])) {
       ++(*i);
       continue;
-    }
-    size_t start = *i;
-
-    if (match(">>", s + *i)) {
+    } else if (match(">>", s + *i)) {
       *i += 2;
       return (Token){
           .type = TOKEN_REDIRECT_APPEND, .s = NULL, .position = start};
@@ -119,40 +116,40 @@ Token next_token(char *s, size_t *i) {
     } else if (match("&", s + *i)) {
       ++(*i);
       return (Token){.type = TOKEN_OPERAND, .s = NULL, .position = start};
-    }
-
-    while (s[*i]) {
-      if (isspace(s[*i]) || charset_contains("|&;[](){}<>", s[*i])) {
-        break;
-      }
-
-      if (s[*i] == '\\') {
-        ++(*i);
-        if (s[*i]) {
-          ++(*i);
+    } else {
+      while (s[*i]) {
+        if (isspace(s[*i]) || charset_contains("|&;[](){}<>", s[*i])) {
+          break;
         }
-      } else if (s[*i] == '\"' || s[*i] == '\'') {
-        char quote = s[(*i)++];
-        while (s[*i] && s[*i] != quote) {
-          if (quote == '\"' && s[*i] == '\\') {
-            ++(*i);
-            if (s[*i]) {
-              ++(*i);
-            }
-          } else {
+
+        if (s[*i] == '\\') {
+          ++(*i);
+          if (s[*i]) {
             ++(*i);
           }
-        }
-        if (s[*i] == quote) {
+        } else if (s[*i] == '\"' || s[*i] == '\'') {
+          char quote = s[(*i)++];
+          while (s[*i] && s[*i] != quote) {
+            if (quote == '\"' && s[*i] == '\\') {
+              ++(*i);
+              if (s[*i]) {
+                ++(*i);
+              }
+            } else {
+              ++(*i);
+            }
+          }
+          if (s[*i] == quote) {
+            ++(*i);
+          }
+        } else {
           ++(*i);
         }
-      } else {
-        ++(*i);
       }
-    }
 
-    char *word = strndup(s + start, *i - start);
-    return (Token){.type = TOKEN_WORD, .s = word, .position = start};
+      char *word = strndup(s + start, *i - start);
+      return (Token){.type = TOKEN_WORD, .s = word, .position = start};
+    }
   }
   return (Token){.type = TOKEN_EOF, .s = NULL, .position = *i};
 }
