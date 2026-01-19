@@ -9,7 +9,7 @@ static bool has_unmatched_pair(const char *s) {
 
   StringBuffer stack = {0};
 
-  for (size_t i = 0; s[i]; ++i) {
+  for (size_t i = 0; s && s[i]; ++i) {
     if (s[i] == '\\' && s[i + 1]) {
       ++i;
       continue;
@@ -28,7 +28,7 @@ static bool has_unmatched_pair(const char *s) {
     }
 
     if (s[i] == '(' || s[i] == '[' || s[i] == '{') {
-      strbuf_push(&stack, s[i]);
+      strbuf_appendc(&stack, s[i]);
     } else if (s[i] == ')' || s[i] == ']' || s[i] == '}') {
       if (stack.size == 0) {
         strbuf_free(&stack);
@@ -75,8 +75,8 @@ char *read_input() {
       continue;
     }
 
-    if (has_unmatched_pair(sb.data)) {
-      strbuf_push(&sb, '\n');
+    if (has_unmatched_pair(strbuf_cstr(&sb))) {
+      strbuf_appendc(&sb, '\n');
       line = readline("> ");
       continue;
     }
@@ -84,6 +84,6 @@ char *read_input() {
     break;
   }
 
-  strbuf_push(&sb, '\0');
-  return sb.data;
+  strbuf_appendc(&sb, '\0');
+  return strbuf_cstr(&sb);
 }

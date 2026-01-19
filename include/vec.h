@@ -16,20 +16,18 @@
 
 // Reserve capacity (internal helper)
 #define vec_reserve(v, n)                                                      \
-  ((n) > (v)->capacity                                                         \
-       ? (typeof((v)->data))realloc((v)->data, (n) * sizeof(*(v)->data))       \
-             ? ((v)->data = (typeof((v)->data))realloc(                        \
-                    (v)->data, (n) * sizeof(*(v)->data)),                      \
-                (v)->capacity = (n), (void)0)                                  \
-             : (void)0                                                         \
-       : (void)0)
+  ((n) > (v)->capacity ? ((v)->data = (typeof((v)->data))realloc(              \
+                              (v)->data, (n) * sizeof(*(v)->data)))            \
+                             ? ((v)->capacity = (n), (void)0)                  \
+                             : (void)0                                         \
+                       : (void)0)
 
 // Push an element to the back
-#define vec_push(v, val)                                                       \
+#define vec_push(v, content)                                                   \
   ((v)->size >= (v)->capacity                                                  \
        ? vec_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2)          \
        : (void)0,                                                              \
-   (v)->data[(v)->size++] = (val))
+   (v)->data[(v)->size++] = (content))
 
 // Pop an element from the back
 #define vec_pop(v) ((v)->size > 0 ? (v)->size-- : 0)
@@ -63,8 +61,8 @@
       memmove(&(v)->data[(i) + 1], &(v)->data[i],                              \
               ((v)->size - (i)) * sizeof(*(v)->data));                         \
     }                                                                          \
-    (v)->data[i] = (val);                                                      \
-    (v)->size++;                                                               \
+    (v)->data[(v)->size++] = (val);                                            \
+    (v)->data[(v)->size] = '\0';                                               \
   } while (0)
 
 // Remove at index
@@ -75,6 +73,6 @@
         memmove(&(v)->data[i], &(v)->data[(i) + 1],                            \
                 ((v)->size - (i) - 1) * sizeof(*(v)->data));                   \
       }                                                                        \
-      (v)->size--;                                                             \
+      (v)->data[--((v)->size)] = '\0';                                         \
     }                                                                          \
   } while (0)

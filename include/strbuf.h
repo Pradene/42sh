@@ -14,33 +14,38 @@ typedef struct {
   ((v)->data ? free((v)->data) : (void)0, (v)->data = NULL, (v)->size = 0,     \
    (v)->capacity = 0)
 
-// Reserve capacity (internal helper)
 #define strbuf_reserve(v, n)                                                   \
-  ((n) > (v)->capacity                                                         \
-       ? (typeof((v)->data))realloc((v)->data, (n) * sizeof(*(v)->data))       \
-             ? ((v)->data = (typeof((v)->data))realloc(                        \
-                    (v)->data, (n) * sizeof(*(v)->data)),                      \
-                (v)->capacity = (n), (void)0)                                  \
-             : (void)0                                                         \
-       : (void)0)
+  do {                                                                         \
+    if ((n) > (v)->capacity) {                                                 \
+      char *tmp = (char *)realloc((v)->data, (n) * sizeof(*(v)->data));        \
+      if (tmp) {                                                               \
+        (v)->data = tmp;                                                       \
+        (v)->capacity = (n);                                                   \
+      }                                                                        \
+    }                                                                          \
+  } while (0)
 
 // Push an element to the back
-#define strbuf_push(v, val)                                                    \
-  ((v)->size >= (v)->capacity                                                  \
-       ? strbuf_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2)       \
-       : (void)0,                                                              \
-   (v)->data[(v)->size++] = (val))
+#define strbuf_appendc(v, c)                                                   \
+  do {                                                                         \
+    if ((v)->size >= (v)->capacity) {                                          \
+      strbuf_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2);         \
+    }                                                                          \
+    (v)->data[(v)->size++] = (c);                                              \
+    (v)->data[(v)->size] = '\0';                                               \
+  } while (0)
 
 // Append a cstr to the back (concat)
 #define strbuf_append(v, cstr)                                                 \
   do {                                                                         \
     size_t len = strlen(cstr);                                                 \
-    while ((v)->size + len >= (v)->capacity) {                                 \
+    while ((v)->size + len + 1 >= (v)->capacity) {                             \
       strbuf_reserve(v, ((v)->capacity == 0) ? 16 : (v)->capacity * 2);        \
     }                                                                          \
     for (size_t i = 0; i < len; ++i) {                                         \
       (v)->data[(v)->size++] = cstr[i];                                        \
     }                                                                          \
+    (v)->data[(v)->size] = '\0';                                               \
   } while (0)
 
 // Pop an element from the back
@@ -52,17 +57,8 @@ typedef struct {
 // Get size
 #define strbuf_size(v) ((v)->size)
 
-// Get capacity
-#define strbuf_capacity(v) ((v)->capacity)
-
-// Clear the strbuf (keep capacity)
-#define strbuf_clear(v) ((v)->size = 0)
-
 // Get pointer to first element
-#define strbuf_begin(v) ((v)->data)
-
-// Get pointer to one past last element
-#define strbuf_end(v) ((v)->data + (v)->size)
+#define strbuf_cstr(v) ((v)->data)
 
 // Insert at index
 #define strbuf_insert(v, i, val)                                               \

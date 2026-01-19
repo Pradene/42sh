@@ -158,10 +158,8 @@ bool tokenize(char *s, Tokens *tokens) {
 
   while (true) {
     token = next_token(s, &position);
-    if (token.type == TOKEN_UNDEFINED)
-      return false;
     if (token.type == TOKEN_EOF)
-      return true;
+      break;
     vec_push(tokens, token);
   }
   return true;
