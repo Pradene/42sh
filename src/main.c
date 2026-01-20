@@ -4,7 +4,11 @@
 #include "vec.h"
 #include <readline/history.h>
 
-int main() {
+int main(int argc, char **argv, char **envp) {
+  (void)argc;
+  (void)argv;
+  (void)envp;
+
   using_history();
 
   while (true) {
