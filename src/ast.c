@@ -1,4 +1,6 @@
 #include "parser.h"
+#include "vec.h"
+
 #include <stdio.h>
 
 void ast_free(AstNode **root) {
@@ -18,12 +20,15 @@ void ast_free(AstNode **root) {
       ast_free(&(*root)->operator.right);
     break;
   case NODE_COMMAND:
-    vec_free(&(*root)->command.args);
+    for (size_t i = 0; i < vec_size(&((*root)->command.args)); ++i) {
+      free(vec_at(&((*root)->command.args), i));
+    }
+    vec_free(&((*root)->command.args));
     break;
   case NODE_PAREN:
   case NODE_BRACE:
     if ((*root)->group.inner)
-      ast_free(&(*root)->group.inner);
+      ast_free(&((*root)->group.inner));
     break;
   default:
     return;

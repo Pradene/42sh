@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
+#include "vec.h"
 #include <stdio.h>
 
 static AstNode *parse_command(Tokens *tokens, size_t *i);
@@ -39,6 +40,10 @@ static AstNode *parse_command(Tokens *tokens, size_t *i) {
 static AstNode *parse_group(Tokens *tokens, size_t *i) {
   TokenType close;
   AstNodeType type;
+
+  if (*i >= vec_size(tokens)) {
+    return NULL;
+  }
 
   if (vec_at(tokens, *i).type == TOKEN_LPAREN) {
     close = TOKEN_RPAREN;

@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "strbuf.h"
+#include "vec.h"
 
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -15,19 +16,35 @@ AstNode *get_command() {
   sb_append(&sb, line);
 
   AstNode *root = NULL;
-  while (true) {
+  while (line) {
     Tokens tokens = (Tokens){0};
-    if (!tokenize(sb_as_cstr(&sb), &tokens) || !parse(&tokens, &root)) {
+    if (!tokenize(sb_as_cstr(&sb), &tokens)) {
       free(line);
       line = readline("> ");
       sb_append(&sb, line);
+      for (size_t i = 0; i < vec_size(&tokens); ++i) {
+        Token *token = &vec_at(&tokens, i);
+        if (token->s) {
+          free(token->s);
+        }
+      }
+      vec_free(&tokens);
+    }
+
+    if (!parse(&tokens, &root)) {
+      free(line);
+      line = readline("> ");
+      sb_append(&sb, line);
+      vec_free(&tokens);
       ast_free(&root);
     } else {
+      add_history(sb_as_cstr(&sb));
+      vec_free(&tokens);
+      sb_free(&sb);
+      free(line);
       break;
     }
   }
-
-  add_history(sb_as_cstr(&sb));
 
   return root;
 }
@@ -46,6 +63,7 @@ int main(int argc, char **argv, char **envp) {
     }
 
     ast_print(root);
+    ast_free(&root);
   }
 
   clear_history();
