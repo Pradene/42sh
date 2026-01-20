@@ -12,21 +12,18 @@ void ast_free(AstNode **root) {
   case NODE_SEMICOLON:
   case NODE_BACKGROUND:
   case NODE_PIPE:
-    (void)0;
-    AstNode *right = (*root)->operator.right;
-    AstNode *left = (*root)->operator.left;
-    if ((left)->operator.left)
+    if ((*root)->operator.left)
       ast_free(&(*root)->operator.left);
-    if (right)
+    if ((*root)->operator.right)
       ast_free(&(*root)->operator.right);
     break;
   case NODE_COMMAND:
-    (void)0;
-    CommandArgs *args = &((*root)->command.args);
-    for (size_t i = 0; i < vec_size(args); ++i) {
-      free(vec_at(args, i));
-    }
-    vec_free(args);
+    vec_free(&(*root)->command.args);
+    break;
+  case NODE_PAREN:
+  case NODE_BRACE:
+    if ((*root)->group.inner)
+      ast_free(&(*root)->group.inner);
     break;
   default:
     return;
@@ -82,6 +79,20 @@ static void ast_print_inner(AstNode *root, int depth) {
     ast_print_inner(root->operator.left, depth + 1);
     if (root->operator.right) {
       ast_print_inner(root->operator.right, depth + 1);
+    }
+    break;
+
+  case NODE_PAREN:
+    printf("PARENTHESIS ( () )\n");
+    if (root->group.inner) {
+      ast_print_inner(root->group.inner, depth + 1);
+    }
+    break;
+
+  case NODE_BRACE:
+    printf("BRACE ( {} )\n");
+    if (root->group.inner) {
+      ast_print_inner(root->group.inner, depth + 1);
     }
     break;
 
