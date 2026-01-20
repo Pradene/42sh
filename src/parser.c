@@ -2,7 +2,32 @@
 #include "lexer.h"
 #include "vec.h"
 #include <stdio.h>
-#include <stdlib.h>
+
+void ast_free(AstNode **root) {
+  switch ((*root)->type) {
+  case NODE_AND:
+  case NODE_OR:
+  case NODE_SEMICOLON:
+    ast_free(&(*root)->data.sequence.left);
+    ast_free(&(*root)->data.sequence.right);
+    break;
+  case NODE_PIPE:
+    ast_free(&(*root)->data.pipeline.left);
+    ast_free(&(*root)->data.pipeline.right);
+    break;
+  case NODE_COMMAND:
+    for (size_t i = 0; i < vec_size(&(*root)->data.command.args); i++) {
+      free(vec_at(&(*root)->data.command.args, i));
+    }
+    vec_free(&(*root)->data.command.args);
+    break;
+  default:
+    return;
+  }
+
+  free(*root);
+  (*root) = NULL;
+}
 
 static inline void ast_print_indent(int depth) { printf("%*s", depth * 2, ""); }
 
@@ -56,7 +81,6 @@ static AstNode *parse_command(Tokens *tokens, size_t *i) {
   if (!node)
     return NULL;
   node->type = NODE_COMMAND;
-  node->data.command.name = NULL;
   node->data.command.args.data = NULL;
   node->data.command.args.capacity = 0;
   node->data.command.args.size = 0;
@@ -67,9 +91,6 @@ static AstNode *parse_command(Tokens *tokens, size_t *i) {
     }
 
     vec_push(&node->data.command.args, token.s);
-    if (!node->data.command.name) {
-      node->data.command.name = token.s;
-    }
     ++(*i);
   }
   return node;
