@@ -46,7 +46,7 @@ typedef struct AstNode {
     Command command;
     Pipeline pipeline;
     Sequence sequence;
-  } data;
+  };
   AstNodeType type;
 } AstNode;
 
