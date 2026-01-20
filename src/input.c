@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-static bool has_unmatched_pair(const char *s) {
+static bool has_unclosed_pair(const char *s) {
   bool in_single = false;
   bool in_double = false;
 
@@ -32,7 +32,7 @@ static bool has_unmatched_pair(const char *s) {
     } else if (s[i] == ')' || s[i] == ']' || s[i] == '}') {
       if (stack.size == 0) {
         strbuf_free(&stack);
-        return true;
+        return false;
       }
 
       char last = stack.data[stack.size - 1];
@@ -76,7 +76,7 @@ char *read_input() {
       continue;
     }
 
-    if (has_unmatched_pair(strbuf_cstr(&sb))) {
+    if (has_unclosed_pair(strbuf_cstr(&sb))) {
       strbuf_appendc(&sb, '\n');
       line = readline("> ");
       continue;
