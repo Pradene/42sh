@@ -107,6 +107,9 @@ static AstNode *parse_command(Tokens *tokens, size_t *i) {
     vec_push(&node->command.args, token.s);
     ++(*i);
   }
+  if (vec_size(&node->command.args) == 0) {
+    return NULL;
+  }
   return node;
 }
 

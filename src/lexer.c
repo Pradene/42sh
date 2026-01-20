@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "vec.h"
 #include <ctype.h>
+#include <stddef.h>
 
 static bool charset_contains(const char *set, char c) { return strchr(set, c); }
 
@@ -48,6 +49,10 @@ const char *token_type_str(TokenType type) {
     return "HEREDOC";
   case TOKEN_REDIRECT_IN:
     return "REDIRECT_IN";
+  case TOKEN_REDIRECT_FD_IN:
+    return "REDIRECT_FD_IN";
+  case TOKEN_REDIRECT_FD_OUT:
+    return "REDIRECT_FD_OUT";
   case TOKEN_UNDEFINED:
     return "UNDEFINED";
   }
@@ -56,99 +61,80 @@ const char *token_type_str(TokenType type) {
 }
 
 Token next_token(char *s, size_t *i) {
+  static const struct {
+    const char *s;
+    TokenType type;
+    size_t length;
+  } operators[] = {{">>", TOKEN_REDIRECT_APPEND, 2},
+                   {"<<", TOKEN_HEREDOC, 2},
+                   {"<&", TOKEN_REDIRECT_FD_IN, 2},
+                   {">&", TOKEN_REDIRECT_FD_OUT, 2},
+                   {"&&", TOKEN_AND, 2},
+                   {"||", TOKEN_OR, 2},
+                   {";;", TOKEN_DBL_SEMICOLON, 2},
+                   {"|", TOKEN_PIPE, 1},
+                   {"<", TOKEN_REDIRECT_IN, 1},
+                   {">", TOKEN_REDIRECT_OUT, 1},
+                   {";", TOKEN_SEMICOLON, 1},
+                   {"$", TOKEN_DOLLAR, 1},
+                   {"(", TOKEN_LPAREN, 1},
+                   {")", TOKEN_RPAREN, 1},
+                   {"[", TOKEN_LBRACKET, 1},
+                   {"]", TOKEN_RBRACKET, 1},
+                   {"{", TOKEN_LBRACE, 1},
+                   {"}", TOKEN_RBRACE, 1},
+                   {"&", TOKEN_OPERAND, 1},
+                   {NULL, TOKEN_UNDEFINED, 0}};
+
   while (s[*i]) {
     size_t start = *i;
 
     if (isspace(s[*i])) {
       ++(*i);
       continue;
-    } else if (match(">>", s + *i)) {
-      *i += 2;
-      return (Token){
-          .type = TOKEN_REDIRECT_APPEND, .s = NULL, .position = start};
-    } else if (match("<<", s + *i)) {
-      *i += 2;
-      return (Token){.type = TOKEN_HEREDOC, .s = NULL, .position = start};
-    } else if (match("&&", s + *i)) {
-      *i += 2;
-      return (Token){.type = TOKEN_AND, .s = NULL, .position = start};
-    } else if (match("||", s + *i)) {
-      *i += 2;
-      return (Token){.type = TOKEN_OR, .s = NULL, .position = start};
-    } else if (match(";;", s + *i)) {
-      *i += 2;
-      return (Token){.type = TOKEN_DBL_SEMICOLON, .s = NULL, .position = start};
-    } else if (match("|", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_PIPE, .s = NULL, .position = start};
-    } else if (match("<", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_REDIRECT_IN, .s = NULL, .position = start};
-    } else if (match(">", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_REDIRECT_OUT, .s = NULL, .position = start};
-    } else if (match(";", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_SEMICOLON, .s = NULL, .position = start};
-    } else if (match("$", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_DOLLAR, .s = NULL, .position = start};
-    } else if (match("(", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_LPAREN, .s = NULL, .position = start};
-    } else if (match(")", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_RPAREN, .s = NULL, .position = start};
-    } else if (match("[", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_LBRACKET, .s = NULL, .position = start};
-    } else if (match("]", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_RBRACKET, .s = NULL, .position = start};
-    } else if (match("{", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_LBRACE, .s = NULL, .position = start};
-    } else if (match("}", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_RBRACE, .s = NULL, .position = start};
-    } else if (match("&", s + *i)) {
-      ++(*i);
-      return (Token){.type = TOKEN_OPERAND, .s = NULL, .position = start};
-    } else {
-      while (s[*i]) {
-        if (isspace(s[*i]) || charset_contains("|&;[](){}<>", s[*i])) {
-          break;
-        }
+    }
 
-        if (s[*i] == '\\') {
-          ++(*i);
-          if (s[*i]) {
-            ++(*i);
-          }
-        } else if (s[*i] == '\"' || s[*i] == '\'') {
-          char quote = s[(*i)++];
-          while (s[*i] && s[*i] != quote) {
-            if (quote == '\"' && s[*i] == '\\') {
-              ++(*i);
-              if (s[*i]) {
-                ++(*i);
-              }
-            } else {
-              ++(*i);
-            }
-          }
-          if (s[*i] == quote) {
-            ++(*i);
-          }
-        } else {
-          ++(*i);
-        }
+    for (size_t j = 0; operators[j].s != NULL; j++) {
+      if (match(operators[j].s, s + *i)) {
+        *i += operators[j].length;
+        return (Token){.type = operators[j].type, .s = NULL, .position = start};
+      }
+    }
+
+    while (s[*i]) {
+      if (isspace(s[*i]) || charset_contains("|&;[](){}<>", s[*i])) {
+        break;
       }
 
-      char *word = strndup(s + start, *i - start);
-      return (Token){.type = TOKEN_WORD, .s = word, .position = start};
+      if (s[*i] == '\\') {
+        ++(*i);
+        if (s[*i]) {
+          ++(*i);
+        }
+      } else if (s[*i] == '\"' || s[*i] == '\'') {
+        char quote = s[(*i)++];
+        while (s[*i] && s[*i] != quote) {
+          if (quote == '\"' && s[*i] == '\\') {
+            ++(*i);
+            if (s[*i]) {
+              ++(*i);
+            }
+          } else {
+            ++(*i);
+          }
+        }
+        if (s[*i] == quote) {
+          ++(*i);
+        }
+      } else {
+        ++(*i);
+      }
     }
+
+    char *word = strndup(s + start, *i - start);
+    return (Token){.type = TOKEN_WORD, .s = word, .position = start};
   }
+
   return (Token){.type = TOKEN_EOF, .s = NULL, .position = *i};
 }
 
