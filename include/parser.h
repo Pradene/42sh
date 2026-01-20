@@ -12,6 +12,7 @@ typedef enum AstNodeType {
   NODE_OR,
   NODE_PIPE,
   NODE_SEMICOLON,
+  NODE_BACKGROUND,
   NODE_PAREN,
   NODE_BRACE,
 } AstNodeType;

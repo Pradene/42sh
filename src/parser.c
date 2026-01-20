@@ -7,9 +7,15 @@ void ast_free(AstNode **root) {
   switch ((*root)->type) {
   case NODE_AND:
   case NODE_OR:
-  case NODE_SEMICOLON:
     ast_free(&(*root)->sequence.left);
     ast_free(&(*root)->sequence.right);
+    break;
+  case NODE_SEMICOLON:
+  case NODE_BACKGROUND:
+    ast_free(&(*root)->sequence.left);
+    if ((*root)->sequence.right) {
+      ast_free(&(*root)->sequence.right);
+    }
     break;
   case NODE_PIPE:
     ast_free(&(*root)->pipeline.left);
@@ -30,8 +36,9 @@ void ast_free(AstNode **root) {
 }
 
 static void ast_print_inner(AstNode *root, int depth) {
-  if (!root)
+  if (!root) {
     return;
+  }
 
   printf("%*s", depth * 2, "");
   switch (root->type) {
@@ -64,7 +71,17 @@ static void ast_print_inner(AstNode *root, int depth) {
   case NODE_SEMICOLON:
     printf("SEMICOLON (;)\n");
     ast_print_inner(root->sequence.left, depth + 1);
-    ast_print_inner(root->sequence.right, depth + 1);
+    if (root->sequence.right) {
+      ast_print_inner(root->sequence.right, depth + 1);
+    }
+    return;
+
+  case NODE_BACKGROUND:
+    printf("BACKGROUND (&)\n");
+    ast_print_inner(root->sequence.left, depth + 1);
+    if (root->sequence.right) {
+      ast_print_inner(root->sequence.right, depth + 1);
+    }
     return;
 
   default:
@@ -76,8 +93,9 @@ void ast_print(AstNode *root) { ast_print_inner(root, 0); }
 
 static AstNode *parse_command(Tokens *tokens, size_t *i) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
-  if (!node)
+  if (!node) {
     return NULL;
+  }
   node->type = NODE_COMMAND;
   node->command.args = (CommandArgs){0};
   while (*i < vec_size(tokens)) {
@@ -97,6 +115,7 @@ static AstNode *parse_pipeline(Tokens *tokens, size_t *i) {
   if (!left) {
     return NULL;
   }
+
   while (*i < vec_size(tokens) && vec_at(tokens, *i).type == TOKEN_PIPE) {
     ++(*i);
     AstNode *right = parse_command(tokens, i);
@@ -112,8 +131,11 @@ static AstNode *parse_pipeline(Tokens *tokens, size_t *i) {
   return left;
 }
 
-static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
+static AstNode *parse_logical(Tokens *tokens, size_t *i) {
   AstNode *left = parse_pipeline(tokens, i);
+  if (!left) {
+    return NULL;
+  }
 
   while (*i < vec_size(tokens)) {
     Token token = vec_at(tokens, *i);
@@ -126,11 +148,54 @@ static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
       node->type = NODE_AND;
     } else if (token.type == TOKEN_OR) {
       node->type = NODE_OR;
+    } else {
+      break;
+    }
+
+    ++(*i);
+
+    AstNode *right = parse_pipeline(tokens, i);
+    if (!right) {
+      return NULL;
+    }
+
+    node->sequence.left = left;
+    node->sequence.right = right;
+    left = node;
+  }
+  return left;
+}
+
+static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
+  AstNode *left = parse_logical(tokens, i);
+  if (!left) {
+    return NULL;
+  }
+
+  while (*i < vec_size(tokens)) {
+    Token token = vec_at(tokens, *i);
+    AstNode *node = (AstNode *)malloc(sizeof(AstNode));
+    if (!node) {
+      return NULL;
+    }
+
+    if (token.type == TOKEN_OPERAND) {
+      node->type = NODE_BACKGROUND;
     } else if (token.type == TOKEN_SEMICOLON) {
       node->type = NODE_SEMICOLON;
+    } else {
+      break;
     }
+
     ++(*i);
-    AstNode *right = parse_pipeline(tokens, i);
+
+    AstNode *right;
+    if (*i < vec_size(tokens)) {
+      right = parse_logical(tokens, i);
+    } else {
+      right = NULL;
+    }
+
     node->sequence.left = left;
     node->sequence.right = right;
     left = node;
