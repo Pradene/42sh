@@ -1,6 +1,7 @@
 #include "strbuf.h"
 #include <readline/readline.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 static bool has_unclosed_pair(const char *s) {
@@ -8,7 +9,6 @@ static bool has_unclosed_pair(const char *s) {
   bool in_double = false;
 
   StringBuffer stack = {0};
-
   for (size_t i = 0; s && s[i]; ++i) {
     if (s[i] == '\\' && s[i + 1]) {
       ++i;
@@ -40,8 +40,7 @@ static bool has_unclosed_pair(const char *s) {
                    (s[i] == ']' && last == '[') || (s[i] == '}' && last == '{');
 
       if (!match) {
-        strbuf_free(&stack);
-        return true;
+        continue;
       }
       stack.size--;
     }
