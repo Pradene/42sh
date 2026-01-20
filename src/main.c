@@ -15,17 +15,9 @@ AstNode *get_command() {
   sb_append(&sb, line);
 
   AstNode *root = NULL;
-  Tokens tokens = {0};
   while (true) {
-    tokens = (Tokens){0};
-    if (!tokenize(sb_as_cstr(&sb), &tokens)) {
-      free(line);
-      line = readline("> ");
-      sb_append(&sb, line);
-    }
-
-    root = NULL;
-    if (!parse(&tokens, &root)) {
+    Tokens tokens = (Tokens){0};
+    if (!tokenize(sb_as_cstr(&sb), &tokens) || !parse(&tokens, &root)) {
       free(line);
       line = readline("> ");
       sb_append(&sb, line);
