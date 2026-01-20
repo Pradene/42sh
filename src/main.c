@@ -2,6 +2,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "vec.h"
+#include <stddef.h>
 
 int main() {
   while (true) {
@@ -17,6 +18,11 @@ int main() {
 
     AstNode *root = NULL;
     if (!parse(&tokens, &root)) {
+      for (size_t i = 0; i < vec_size(&tokens); ++i) {
+        if (tokens.data[i].type == TOKEN_WORD) {
+          free(tokens.data[i].s);
+        }
+      }
       vec_free(&tokens);
       continue;
     }
