@@ -1,7 +1,7 @@
 #include "input.h"
 #include "lexer.h"
+#include "parser.h"
 #include "vec.h"
-#include <stdio.h>
 
 int main() {
   while (true) {
@@ -10,15 +10,14 @@ int main() {
     if (!input || !tokenize(input, &tokens)) {
       continue;
     }
-    for (size_t i = 0; i < tokens.size; ++i) {
-      printf("%s\n", token_type_str(tokens.data[i].type));
-      if (tokens.data[i].type == TOKEN_WORD) {
-        printf("%s\n", tokens.data[i].s);
-        free(tokens.data[i].s);
-      }
+    free(input);
+
+    AstNode *root = NULL;
+    if (!parse(&tokens, &root)) {
+      continue;
     }
     vec_free(&tokens);
-    free(input);
+    ast_print(root);
   }
   return 0;
 }
