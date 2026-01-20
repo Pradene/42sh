@@ -63,18 +63,13 @@ static AstNode *parse_logical(Tokens *tokens, size_t *i) {
 
   while (*i < vec_size(tokens)) {
     Token token = vec_at(tokens, *i);
-    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
-    if (!node) {
-      ast_free(&left);
-      return NULL;
-    }
 
+    AstNodeType type;
     if (token.type == TOKEN_AND) {
-      node->type = NODE_AND;
+      type = NODE_AND;
     } else if (token.type == TOKEN_OR) {
-      node->type = NODE_OR;
+      type = NODE_OR;
     } else {
-      free(node);
       break;
     }
 
@@ -83,10 +78,17 @@ static AstNode *parse_logical(Tokens *tokens, size_t *i) {
     AstNode *right = parse_pipeline(tokens, i);
     if (!right) {
       ast_free(&left);
-      ast_free(&node);
       return NULL;
     }
 
+    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+    if (!node) {
+      ast_free(&left);
+      ast_free(&right);
+      return NULL;
+    }
+
+    node->type = type;
     node->operator.left = left;
     node->operator.right = right;
     left = node;
@@ -102,18 +104,13 @@ static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
 
   while (*i < vec_size(tokens)) {
     Token token = vec_at(tokens, *i);
-    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
-    if (!node) {
-      ast_free(&left);
-      return NULL;
-    }
 
+    AstNodeType type;
     if (token.type == TOKEN_OPERAND) {
-      node->type = NODE_BACKGROUND;
+      type = NODE_BACKGROUND;
     } else if (token.type == TOKEN_SEMICOLON) {
-      node->type = NODE_SEMICOLON;
+      type = NODE_SEMICOLON;
     } else {
-      free(node);
       break;
     }
 
@@ -124,13 +121,20 @@ static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
       right = parse_logical(tokens, i);
       if (!right) {
         ast_free(&left);
-        ast_free(&node);
         return NULL;
       }
     } else {
       right = NULL;
     }
 
+    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+    if (!node) {
+      ast_free(&left);
+      ast_free(&right);
+      return NULL;
+    }
+
+    node->type = type;
     node->operator.left = left;
     node->operator.right = right;
     left = node;

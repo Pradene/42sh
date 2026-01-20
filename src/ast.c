@@ -12,16 +12,21 @@ void ast_free(AstNode **root) {
   case NODE_SEMICOLON:
   case NODE_BACKGROUND:
   case NODE_PIPE:
-    if ((*root)->operator.left)
+    (void)0;
+    AstNode *right = (*root)->operator.right;
+    AstNode *left = (*root)->operator.left;
+    if ((left)->operator.left)
       ast_free(&(*root)->operator.left);
-    if ((*root)->operator.right)
+    if (right)
       ast_free(&(*root)->operator.right);
     break;
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&(*root)->command.args); ++i) {
-      free(vec_at(&(*root)->command.args, i));
+    (void)0;
+    CommandArgs *args = &((*root)->command.args);
+    for (size_t i = 0; i < vec_size(args); ++i) {
+      free(vec_at(args, i));
     }
-    vec_free(&(*root)->command.args);
+    vec_free(args);
     break;
   default:
     return;
