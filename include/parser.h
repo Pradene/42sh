@@ -28,15 +28,20 @@ typedef struct Command {
   CommandArgs args;
 } Command;
 
-typedef struct Sequence {
+typedef struct Operator {
   struct AstNode *left;
   struct AstNode *right;
 } Operator;
+
+typedef struct Group {
+  struct AstNode *inner;
+} Group;
 
 typedef struct AstNode {
   union {
     Command command;
     Operator operator;
+    Group group;
   };
   AstNodeType type;
 } AstNode;
