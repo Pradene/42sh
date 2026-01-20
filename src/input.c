@@ -55,8 +55,9 @@ static bool has_unmatched_pair(const char *s) {
 char *read_input() {
   StringBuffer sb = {0};
   char *line = readline("$ ");
-  if (!line)
+  if (!line) {
     return NULL;
+  }
 
   while (line) {
     size_t length = strlen(line);
