@@ -2,6 +2,12 @@
 #include "lexer.h"
 #include <stdio.h>
 
+static AstNode *parse_command(Tokens *tokens, size_t *i);
+static AstNode *parse_group(Tokens *tokens, size_t *i);
+static AstNode *parse_pipeline(Tokens *tokens, size_t *i);
+static AstNode *parse_logical(Tokens *tokens, size_t *i);
+static AstNode *parse_sequence(Tokens *tokens, size_t *i);
+
 static AstNode *parse_command(Tokens *tokens, size_t *i) {
   AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
   if (!node) {
@@ -30,7 +36,36 @@ static AstNode *parse_command(Tokens *tokens, size_t *i) {
   }
 }
 
-static AstNode *parse_group(Tokens *tokens, size_t *i);
+static AstNode *parse_group(Tokens *tokens, size_t *i) {
+  TokenType close;
+  AstNodeType type;
+
+  if (vec_at(tokens, *i).type == TOKEN_LPAREN) {
+    close = TOKEN_RPAREN;
+    type = NODE_PAREN;
+  } else if (vec_at(tokens, *i).type == TOKEN_LBRACE) {
+    close = TOKEN_RBRACE;
+    type = NODE_BRACE;
+  } else {
+    return parse_command(tokens, i);
+  }
+
+  ++(*i);
+  AstNode *inner = parse_sequence(tokens, i);
+  if (!inner) {
+    return NULL;
+  }
+  if (vec_at(tokens, *i).type != close) {
+    ast_free(&inner);
+    return NULL;
+  }
+  ++(*i);
+  AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+  node->type = type;
+  node->group.inner = inner;
+  return node;
+}
+
 static AstNode *parse_pipeline(Tokens *tokens, size_t *i) {
   AstNode *left = parse_group(tokens, i);
   if (!left) {
@@ -146,36 +181,6 @@ static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
     left = node;
   }
   return left;
-}
-
-static AstNode *parse_group(Tokens *tokens, size_t *i) {
-  TokenType close;
-  AstNodeType type;
-
-  if (vec_at(tokens, *i).type == TOKEN_LPAREN) {
-    close = TOKEN_RPAREN;
-    type = NODE_PAREN;
-  } else if (vec_at(tokens, *i).type == TOKEN_LBRACE) {
-    close = TOKEN_RBRACE;
-    type = NODE_BRACE;
-  } else {
-    return parse_command(tokens, i);
-  }
-
-  ++(*i);
-  AstNode *inner = parse_sequence(tokens, i);
-  if (!inner) {
-    return NULL;
-  }
-  if (vec_at(tokens, *i).type != close) {
-    ast_free(&inner);
-    return NULL;
-  }
-  ++(*i);
-  AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
-  node->type = type;
-  node->group.inner = inner;
-  return node;
 }
 
 bool parse(Tokens *tokens, AstNode **root) {

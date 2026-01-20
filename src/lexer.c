@@ -1,7 +1,6 @@
 #include "lexer.h"
-#include "vec.h"
+
 #include <ctype.h>
-#include <stddef.h>
 
 static bool charset_contains(const char *set, char c) { return strchr(set, c); }
 
@@ -97,7 +96,7 @@ Token next_token(char *s, size_t *i) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (match(operators[j].s, s + *i)) {
         *i += operators[j].length;
-        return (Token){.type = operators[j].type, .s = NULL, .position = start};
+        return (Token){operators[j].type, NULL, start};
       }
     }
 
@@ -110,6 +109,8 @@ Token next_token(char *s, size_t *i) {
         ++(*i);
         if (s[*i]) {
           ++(*i);
+        } else {
+          return (Token){TOKEN_UNDEFINED, NULL, start};
         }
       } else if (s[*i] == '\"' || s[*i] == '\'') {
         char quote = s[(*i)++];
@@ -125,6 +126,8 @@ Token next_token(char *s, size_t *i) {
         }
         if (s[*i] == quote) {
           ++(*i);
+        } else {
+          return (Token){TOKEN_UNDEFINED, NULL, start};
         }
       } else {
         ++(*i);
@@ -132,10 +135,10 @@ Token next_token(char *s, size_t *i) {
     }
 
     char *word = strndup(s + start, *i - start);
-    return (Token){.type = TOKEN_WORD, .s = word, .position = start};
+    return (Token){TOKEN_WORD, word, start};
   }
 
-  return (Token){.type = TOKEN_EOF, .s = NULL, .position = *i};
+  return (Token){TOKEN_EOF, NULL, *i};
 }
 
 bool tokenize(char *s, Tokens *tokens) {
@@ -144,8 +147,11 @@ bool tokenize(char *s, Tokens *tokens) {
 
   while (true) {
     token = next_token(s, &position);
-    if (token.type == TOKEN_EOF)
+    if (token.type == TOKEN_UNDEFINED) {
+      return false;
+    } else if (token.type == TOKEN_EOF) {
       break;
+    }
     vec_push(tokens, token);
   }
   return true;
