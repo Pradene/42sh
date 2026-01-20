@@ -22,9 +22,8 @@ typedef struct Redirection {
   char *type;
 } Redirection;
 
-typedef VEC(const char *) CommandArgs;
+typedef VEC(char *) CommandArgs;
 typedef struct Command {
-  char *name;
   CommandArgs args;
   Redirection *redirects;
   size_t redirect_count;
@@ -53,3 +52,4 @@ typedef struct AstNode {
 
 bool parse(Tokens *tokens, AstNode **root);
 void ast_print(AstNode *root);
+void ast_free(AstNode **root);

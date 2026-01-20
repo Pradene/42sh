@@ -42,9 +42,8 @@ typedef struct {
     while ((v)->size + len + 1 >= (v)->capacity) {                             \
       strbuf_reserve(v, ((v)->capacity == 0) ? 16 : (v)->capacity * 2);        \
     }                                                                          \
-    for (size_t i = 0; i < len; ++i) {                                         \
-      (v)->data[(v)->size++] = cstr[i];                                        \
-    }                                                                          \
+    memcpy((v)->data + (v)->size, cstr, len);                                  \
+    (v)->size += len;                                                          \
     (v)->data[(v)->size] = '\0';                                               \
   } while (0)
 
@@ -61,7 +60,7 @@ typedef struct {
 #define strbuf_cstr(v) ((v)->data)
 
 // Insert at index
-#define strbuf_insert(v, i, val)                                               \
+#define strbuf_insert(v, i, c)                                                 \
   do {                                                                         \
     if ((v)->size >= (v)->capacity) {                                          \
       size_t new_cap = ((v)->capacity == 0) ? 8 : (v)->capacity * 2;           \
@@ -71,7 +70,7 @@ typedef struct {
       memmove(&(v)->data[(i) + 1], &(v)->data[i],                              \
               ((v)->size - (i)) * sizeof(*(v)->data));                         \
     }                                                                          \
-    (v)->data[i] = (val);                                                      \
+    (v)->data[i] = (c);                                                        \
     (v)->size++;                                                               \
   } while (0)
 
