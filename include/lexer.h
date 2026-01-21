@@ -1,6 +1,5 @@
 #pragma once
 
-#include "vec.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -35,7 +34,11 @@ typedef struct {
   size_t position;
 } Token;
 
-typedef VEC(Token) Tokens;
+typedef struct {
+  Token *data;
+  size_t size;
+  size_t capacity;
+} Tokens;
 
 const char *token_type_str(TokenType type);
 bool tokenize(char *s, Tokens *tokens);

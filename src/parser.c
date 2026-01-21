@@ -61,7 +61,7 @@ static AstNode *parse_group(Tokens *tokens, size_t *i) {
     return NULL;
   }
   if (vec_at(tokens, *i).type != close) {
-    ast_free(&inner);
+    ast_free(inner);
     return NULL;
   }
   ++(*i);
@@ -86,14 +86,14 @@ static AstNode *parse_pipeline(Tokens *tokens, size_t *i) {
 
     AstNode *right = parse_group(tokens, i);
     if (!right) {
-      ast_free(&left);
+      ast_free(left);
       return NULL;
     }
 
     AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
     if (!node) {
-      ast_free(&left);
-      ast_free(&right);
+      ast_free(left);
+      ast_free(right);
       return NULL;
     }
 
@@ -127,14 +127,14 @@ static AstNode *parse_logical(Tokens *tokens, size_t *i) {
 
     AstNode *right = parse_pipeline(tokens, i);
     if (!right) {
-      ast_free(&left);
+      ast_free(left);
       return NULL;
     }
 
     AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
     if (!node) {
-      ast_free(&left);
-      ast_free(&right);
+      ast_free(left);
+      ast_free(right);
       return NULL;
     }
 
@@ -175,8 +175,8 @@ static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
 
     AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
     if (!node) {
-      ast_free(&left);
-      ast_free(&right);
+      ast_free(left);
+      ast_free(right);
       return NULL;
     }
 

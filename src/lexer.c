@@ -1,6 +1,8 @@
 #include "lexer.h"
+#include "vec.h"
 
 #include <ctype.h>
+#include <string.h>
 
 static bool charset_contains(const char *set, char c) { return strchr(set, c); }
 
