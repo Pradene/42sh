@@ -8,8 +8,6 @@ SRCS      = $(wildcard $(SRCS_DIR)/*.c)
 OBJS      = $(patsubst $(SRCS_DIR)/%.c,$(OBJS_DIR)/%.o,$(SRCS))
 DEPS      = $(OBJS:.o=.d)
 
--include $(DEPS)
-
 all: $(NAME)
 	@echo "\033[1;32m[OK]\033[0m Build complete: $(NAME)"
 
@@ -31,6 +29,8 @@ fclean: clean
 	@rm -f $(NAME)
 
 re: fclean all
+
+-include $(DEPS)
 
 .PHONY: all clean fclean re
 
