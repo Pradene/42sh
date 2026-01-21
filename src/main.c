@@ -16,17 +16,16 @@ AstNode *get_statement() {
   sb_append(&sb, line);
   free(line);
 
-  AstNode *root = NULL;
-  Tokens tokens = {0};
   while (true) {
-    if (!tokenize(sb_as_cstr(&sb), &tokens)) {
-      for (size_t i = 0; i < vec_size(&tokens); ++i) {
-        Token *token = &vec_at(&tokens, i);
+    LexResult lex_result = lex(sb_as_cstr(&sb));
+    if (!lex_result.is_ok && lex_result.err == 1) {
+      for (size_t i = 0; i < vec_size(&lex_result.ok); ++i) {
+        Token *token = &vec_at(&lex_result.ok, i);
         if (token->s) {
           free(token->s);
         }
       }
-      vec_free(&tokens);
+      vec_free(&lex_result.ok);
 
       line = readline("> ");
       if (!line) {
@@ -36,10 +35,11 @@ AstNode *get_statement() {
       free(line);
       continue;
     }
+    lex_result.ok = lex_result.ok;
 
-    if (!parse(&tokens, &root)) {
-      vec_free(&tokens);
-      ast_free(root);
+    ParseResult parse_result = parse(&lex_result.ok);
+    if (!parse_result.is_ok && parse_result.err == 1) {
+      vec_free(&lex_result.ok);
       line = readline("> ");
       if (!line) {
         break;
@@ -47,12 +47,16 @@ AstNode *get_statement() {
       sb_append(&sb, line);
       free(line);
       continue;
+    } else if (!parse_result.is_ok) {
+      vec_free(&lex_result.ok);
+      break;
     }
 
     add_history(sb_as_cstr(&sb));
-    vec_free(&tokens);
+    vec_free(&lex_result.ok);
     sb_free(&sb);
-    return root;
+
+    return parse_result.ok;
   }
 
   sb_free(&sb);

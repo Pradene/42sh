@@ -4,7 +4,6 @@
 #include <stdlib.h>
 
 typedef enum {
-  TOKEN_UNDEFINED,
   TOKEN_LPAREN,
   TOKEN_RPAREN,
   TOKEN_LBRACE,
@@ -41,4 +40,21 @@ typedef struct {
 } Tokens;
 
 const char *token_type_str(TokenType type);
-bool tokenize(char *s, Tokens *tokens);
+
+typedef struct {
+  bool is_ok;
+  union {
+    int err;
+    Token ok;
+  };
+} TokenResult;
+
+typedef struct {
+  bool is_ok;
+  union {
+    int err;
+    Tokens ok;
+  };
+} LexResult;
+
+LexResult lex(char *s);
