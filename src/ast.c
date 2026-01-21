@@ -3,39 +3,38 @@
 
 #include <stdio.h>
 
-void ast_free(AstNode **root) {
-  if (!root || !(*root)) {
+void ast_free(AstNode *root) {
+  if (!root) {
     return;
   }
 
-  switch ((*root)->type) {
+  switch (root->type) {
   case NODE_AND:
   case NODE_OR:
   case NODE_SEMICOLON:
   case NODE_BACKGROUND:
   case NODE_PIPE:
-    if ((*root)->operator.left)
-      ast_free(&(*root)->operator.left);
-    if ((*root)->operator.right)
-      ast_free(&(*root)->operator.right);
+    if (root->operator.left)
+      ast_free(root->operator.left);
+    if (root->operator.right)
+      ast_free(root->operator.right);
     break;
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&((*root)->command.args)); ++i) {
-      free(vec_at(&((*root)->command.args), i));
+    for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
+      free(vec_at(&root->command.args, i));
     }
-    vec_free(&((*root)->command.args));
+    vec_free(&root->command.args);
     break;
   case NODE_PAREN:
   case NODE_BRACE:
-    if ((*root)->group.inner)
-      ast_free(&((*root)->group.inner));
+    if (root->group.inner)
+      ast_free(root->group.inner);
     break;
   default:
     return;
   }
 
-  free(*root);
-  (*root) = NULL;
+  free(root);
 }
 
 static void ast_print_inner(AstNode *root, int depth) {

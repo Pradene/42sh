@@ -1,12 +1,12 @@
 #include "lexer.h"
 #include "parser.h"
-#include "strbuf.h"
+#include "sb.h"
 #include "vec.h"
 
 #include <readline/history.h>
 #include <readline/readline.h>
 
-AstNode *get_command() {
+AstNode *get_statement() {
   StringBuffer sb = {0};
   char *line = readline("$ ");
   if (!line) {
@@ -29,6 +29,7 @@ AstNode *get_command() {
         }
       }
       vec_free(&tokens);
+      continue;
     }
 
     if (!parse(&tokens, &root)) {
@@ -36,7 +37,8 @@ AstNode *get_command() {
       line = readline("> ");
       sb_append(&sb, line);
       vec_free(&tokens);
-      ast_free(&root);
+      ast_free(root);
+      root = NULL;
     } else {
       add_history(sb_as_cstr(&sb));
       vec_free(&tokens);
@@ -57,13 +59,14 @@ int main(int argc, char **argv, char **envp) {
   using_history();
 
   while (true) {
-    AstNode *root = get_command();
+    AstNode *root = get_statement();
     if (!root) {
       continue;
     }
 
     ast_print(root);
-    ast_free(&root);
+    ast_free(root);
+    root = NULL;
   }
 
   clear_history();

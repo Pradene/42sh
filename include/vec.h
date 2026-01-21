@@ -2,13 +2,6 @@
 
 #include <string.h>
 
-#define VEC(T)                                                                 \
-  struct {                                                                     \
-    T *data;                                                                   \
-    size_t size;                                                               \
-    size_t capacity;                                                           \
-  }
-
 // Free vector memory
 #define vec_free(v)                                                            \
   ((v)->data ? free((v)->data) : (void)0, (v)->data = NULL, (v)->size = 0,     \
