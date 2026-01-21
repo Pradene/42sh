@@ -57,10 +57,7 @@ static AstNode *parse_group(Tokens *tokens, size_t *i) {
 
   ++(*i);
   AstNode *inner = parse_sequence(tokens, i);
-  if (!inner) {
-    return NULL;
-  }
-  if (vec_at(tokens, *i).type != close) {
+  if (*i >= vec_size(tokens) || vec_at(tokens, *i).type != close) {
     ast_free(inner);
     return NULL;
   }
