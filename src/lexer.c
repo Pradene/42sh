@@ -54,14 +54,12 @@ const char *token_type_str(TokenType type) {
     return "REDIRECT_FD_IN";
   case TOKEN_REDIRECT_FD_OUT:
     return "REDIRECT_FD_OUT";
-  case TOKEN_UNDEFINED:
-    return "UNDEFINED";
   }
 
   __builtin_unreachable();
 }
 
-Token next_token(char *s, size_t *i) {
+TokenResult next_token(char *s, size_t *i) {
   static const struct {
     const char *s;
     size_t length;
@@ -85,7 +83,7 @@ Token next_token(char *s, size_t *i) {
                    {"{", 1, TOKEN_LBRACE},
                    {"}", 1, TOKEN_RBRACE},
                    {"&", 1, TOKEN_OPERAND},
-                   {NULL, 0, TOKEN_UNDEFINED}};
+                   {NULL, 0, 0}};
 
   while (s[*i]) {
     size_t start = *i;
@@ -98,7 +96,7 @@ Token next_token(char *s, size_t *i) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (match(operators[j].s, s + *i)) {
         *i += operators[j].length;
-        return (Token){NULL, start, operators[j].type};
+        return (TokenResult){.is_ok = true, .ok = {NULL, start, operators[j].type}};
       }
     }
 
@@ -112,7 +110,7 @@ Token next_token(char *s, size_t *i) {
         if (s[*i]) {
           ++(*i);
         } else {
-          return (Token){NULL, start, TOKEN_UNDEFINED};
+          return (TokenResult){.is_ok = false, .err = 1};
         }
       } else if (s[*i] == '\"' || s[*i] == '\'') {
         char quote = s[(*i)++];
@@ -129,7 +127,7 @@ Token next_token(char *s, size_t *i) {
         if (s[*i] == quote) {
           ++(*i);
         } else {
-          return (Token){NULL, start, TOKEN_UNDEFINED};
+          return (TokenResult){.is_ok = false, .err = 1};
         }
       } else {
         ++(*i);
@@ -137,24 +135,28 @@ Token next_token(char *s, size_t *i) {
     }
 
     char *word = strndup(s + start, *i - start);
-    return (Token){word, start, TOKEN_WORD};
+    return (TokenResult){.is_ok = true, .ok = {word, start, TOKEN_WORD}};
   }
 
-  return (Token){NULL, *i, TOKEN_EOF};
+  return (TokenResult){.is_ok = true, .ok = {NULL, *i, TOKEN_EOF}};
 }
 
-bool tokenize(char *s, Tokens *tokens) {
-  Token token;
+LexResult lex(char *s) {
+  Tokens tokens = {0};
   size_t position = 0;
 
   while (true) {
-    token = next_token(s, &position);
-    if (token.type == TOKEN_UNDEFINED) {
-      return false;
-    } else if (token.type == TOKEN_EOF) {
+    TokenResult result = next_token(s, &position);
+    if (!result.is_ok) {
+      return (LexResult){.is_ok = false, .err = result.err};
+    }
+
+    Token token = result.ok;
+    if (token.type == TOKEN_EOF) {
       break;
     }
-    vec_push(tokens, token);
+    vec_push(&tokens, token);
   }
-  return true;
+
+  return (LexResult){.is_ok = true, .ok = tokens};
 }

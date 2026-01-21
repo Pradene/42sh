@@ -3,19 +3,19 @@
 #include "vec.h"
 #include <stdio.h>
 
-static AstNode *parse_command(Tokens *tokens, size_t *i);
-static AstNode *parse_group(Tokens *tokens, size_t *i);
-static AstNode *parse_pipeline(Tokens *tokens, size_t *i);
-static AstNode *parse_logical(Tokens *tokens, size_t *i);
-static AstNode *parse_sequence(Tokens *tokens, size_t *i);
+static ParseResult parse_command(Tokens *tokens, size_t *i);
+static ParseResult parse_group(Tokens *tokens, size_t *i);
+static ParseResult parse_pipeline(Tokens *tokens, size_t *i);
+static ParseResult parse_logical(Tokens *tokens, size_t *i);
+static ParseResult parse_sequence(Tokens *tokens, size_t *i);
 
-static AstNode *parse_command(Tokens *tokens, size_t *i) {
-  AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+static ParseResult parse_command(Tokens *tokens, size_t *i) {
+  AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
-    return NULL;
+    return (ParseResult){ .is_ok = false, .err = 2 };
   }
 
-  node->type = NODE_UNDEFINED;
+  node->type = NODE_COMMAND;
   node->command.args = (CommandArgs){0};
   while (*i < vec_size(tokens)) {
     Token token = vec_at(tokens, *i);
@@ -25,24 +25,23 @@ static AstNode *parse_command(Tokens *tokens, size_t *i) {
 
     ++(*i);
 
-    node->type = NODE_COMMAND;
     vec_push(&node->command.args, token.s);
   }
 
-  if (node->type == NODE_COMMAND) {
-    return node;
+  if (vec_size(&node->command.args) != 0) {
+    return (ParseResult){ .is_ok = true, .ok = node };
   } else {
     free(node);
-    return NULL;
+    return (ParseResult){ .is_ok = false, .err = 2 };
   }
 }
 
-static AstNode *parse_group(Tokens *tokens, size_t *i) {
+static ParseResult parse_group(Tokens *tokens, size_t *i) {
   TokenType close;
   AstNodeType type;
 
   if (*i >= vec_size(tokens)) {
-    return NULL;
+    return (ParseResult){ .is_ok = false, .err = 2 };
   }
 
   if (vec_at(tokens, *i).type == TOKEN_LPAREN) {
@@ -56,56 +55,67 @@ static AstNode *parse_group(Tokens *tokens, size_t *i) {
   }
 
   ++(*i);
-  AstNode *inner = parse_sequence(tokens, i);
+  
+  if (*i >= vec_size(tokens)) {
+    return (ParseResult){ .is_ok = false, .err = 1 };
+  }
+  
+  ParseResult inner_result = parse_sequence(tokens, i);
+  if (!inner_result.is_ok) {
+    return inner_result;
+  }
+  
+  AstNode *inner = inner_result.ok;
   if (*i >= vec_size(tokens) || vec_at(tokens, *i).type != close) {
     ast_free(inner);
-    return NULL;
+    return (ParseResult){ .is_ok = false, .err = 1 };
   }
   ++(*i);
-  AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+  
+  AstNode *node = (AstNode *)malloc(sizeof(AstNode));
+  if (!node) {
+    ast_free(inner);
+    return (ParseResult){ .is_ok = false, .err = 2 };
+  }
   node->type = type;
   node->group.inner = inner;
-  return node;
+  return (ParseResult){ .is_ok = true, .ok = node };
 }
 
-static AstNode *parse_pipeline(Tokens *tokens, size_t *i) {
-  AstNode *left = parse_group(tokens, i);
-  if (!left) {
-    return NULL;
+static ParseResult parse_pipeline(Tokens *tokens, size_t *i) {
+  ParseResult left_result = parse_group(tokens, i);
+  if (!left_result.is_ok) {
+    return left_result;
   }
 
-  while (*i < vec_size(tokens)) {
-    if (vec_at(tokens, *i).type != TOKEN_PIPE) {
-      break;
-    }
-
+  while (*i < vec_size(tokens) && vec_at(tokens, *i).type == TOKEN_PIPE) {
     ++(*i);
 
-    AstNode *right = parse_group(tokens, i);
-    if (!right) {
-      ast_free(left);
-      return NULL;
+    ParseResult right_result = parse_group(tokens, i);
+    if (!right_result.is_ok) {
+      ast_free(left_result.ok);
+      return (ParseResult){ .is_ok = false, .err = 1 };
     }
 
-    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+    AstNode *node = (AstNode *)malloc(sizeof(AstNode));
     if (!node) {
-      ast_free(left);
-      ast_free(right);
-      return NULL;
+      ast_free(left_result.ok);
+      ast_free(right_result.ok);
+      return (ParseResult){ .is_ok = false, .err = 2 };
     }
 
     node->type = NODE_PIPE;
-    node->operator.right = right;
-    node->operator.left = left;
-    left = node;
+    node->operator.right = right_result.ok;
+    node->operator.left = left_result.ok;
+    left_result.ok = node;
   }
-  return left;
+  return left_result;
 }
 
-static AstNode *parse_logical(Tokens *tokens, size_t *i) {
-  AstNode *left = parse_pipeline(tokens, i);
-  if (!left) {
-    return NULL;
+static ParseResult parse_logical(Tokens *tokens, size_t *i) {
+  ParseResult left_result = parse_pipeline(tokens, i);
+  if (!left_result.is_ok) {
+    return left_result;
   }
 
   while (*i < vec_size(tokens)) {
@@ -122,31 +132,31 @@ static AstNode *parse_logical(Tokens *tokens, size_t *i) {
 
     ++(*i);
 
-    AstNode *right = parse_pipeline(tokens, i);
-    if (!right) {
-      ast_free(left);
-      return NULL;
+    ParseResult right_result = parse_pipeline(tokens, i);
+    if (!right_result.is_ok) {
+      ast_free(left_result.ok);
+      return (ParseResult){ .is_ok = false, .err = 1 };
     }
 
-    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+    AstNode *node = (AstNode *)malloc(sizeof(AstNode));
     if (!node) {
-      ast_free(left);
-      ast_free(right);
-      return NULL;
+      ast_free(left_result.ok);
+      ast_free(right_result.ok);
+      return (ParseResult){ .is_ok = false, .err = 2 };
     }
 
     node->type = type;
-    node->operator.left = left;
-    node->operator.right = right;
-    left = node;
+    node->operator.left = left_result.ok;
+    node->operator.right = right_result.ok;
+    left_result.ok = node;
   }
-  return left;
+  return left_result;
 }
 
-static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
-  AstNode *left = parse_logical(tokens, i);
-  if (!left) {
-    return NULL;
+static ParseResult parse_sequence(Tokens *tokens, size_t *i) {
+  ParseResult left_result = parse_logical(tokens, i);
+  if (!left_result.is_ok) {
+    return left_result;
   }
 
   while (*i < vec_size(tokens)) {
@@ -163,34 +173,35 @@ static AstNode *parse_sequence(Tokens *tokens, size_t *i) {
 
     ++(*i);
 
-    AstNode *right;
+    ParseResult right_result;
     if (*i < vec_size(tokens)) {
-      right = parse_logical(tokens, i);
+      right_result = parse_logical(tokens, i);
     } else {
-      right = NULL;
+      right_result = (ParseResult){ .is_ok = true, .ok = NULL };
     }
 
-    AstNode *node = (AstNode *)calloc(1, sizeof(AstNode));
+    AstNode *node = (AstNode *)malloc(sizeof(AstNode));
     if (!node) {
-      ast_free(left);
-      ast_free(right);
-      return NULL;
+      ast_free(left_result.ok);
+      ast_free(right_result.ok);
+      return (ParseResult){ .is_ok = false, .err = 2 };
     }
 
     node->type = type;
-    node->operator.left = left;
-    node->operator.right = right;
-    left = node;
+    node->operator.left = left_result.ok;
+    node->operator.right = right_result.ok;
+    left_result.ok = node;
   }
-  return left;
+
+  return left_result;
 }
 
-bool parse(Tokens *tokens, AstNode **root) {
-  size_t position = 0;
-
-  *root = parse_sequence(tokens, &position);
-  if (!(*root) || position != vec_size(tokens)) {
-    return false;
+ParseResult parse(Tokens *tokens) {
+  size_t i = 0;
+  ParseResult result = parse_sequence(tokens, &i);
+  if (result.is_ok && i < vec_size(tokens)) {
+    ast_free(result.ok);
+    return (ParseResult){ .is_ok = false, .err = 2 };
   }
-  return true;
+  return result;
 }

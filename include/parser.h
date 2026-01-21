@@ -51,6 +51,14 @@ typedef struct AstNode {
   AstNodeType type;
 } AstNode;
 
-bool parse(Tokens *tokens, AstNode **root);
+typedef struct {
+  bool is_ok;
+  union {
+    int err;
+    AstNode *ok;
+  };
+} ParseResult;
+
+ParseResult parse(Tokens *tokens);
 void ast_print(AstNode *root);
 void ast_free(AstNode *root);
