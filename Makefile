@@ -1,11 +1,14 @@
 NAME     = 42sh
 CC       = cc
-CFLAGS   = -Wall -Wextra -Werror -Iinclude -g
+CFLAGS   = -Wall -Wextra -Werror -Iinclude -MMD -MP -g
 SRCS_DIR = src
 OBJS_DIR = obj
 
 SRCS      = $(wildcard $(SRCS_DIR)/*.c)
 OBJS      = $(patsubst $(SRCS_DIR)/%.c,$(OBJS_DIR)/%.o,$(SRCS))
+DEPS      = $(OBJS:.o=.d)
+
+-include $(DEPS)
 
 all: $(NAME)
 	@echo "\033[1;32m[OK]\033[0m Build complete: $(NAME)"

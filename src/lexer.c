@@ -64,28 +64,28 @@ const char *token_type_str(TokenType type) {
 Token next_token(char *s, size_t *i) {
   static const struct {
     const char *s;
-    TokenType type;
     size_t length;
-  } operators[] = {{">>", TOKEN_REDIRECT_APPEND, 2},
-                   {"<<", TOKEN_HEREDOC, 2},
-                   {"<&", TOKEN_REDIRECT_FD_IN, 2},
-                   {">&", TOKEN_REDIRECT_FD_OUT, 2},
-                   {"&&", TOKEN_AND, 2},
-                   {"||", TOKEN_OR, 2},
-                   {";;", TOKEN_DBL_SEMICOLON, 2},
-                   {"|", TOKEN_PIPE, 1},
-                   {"<", TOKEN_REDIRECT_IN, 1},
-                   {">", TOKEN_REDIRECT_OUT, 1},
-                   {";", TOKEN_SEMICOLON, 1},
-                   {"$", TOKEN_DOLLAR, 1},
-                   {"(", TOKEN_LPAREN, 1},
-                   {")", TOKEN_RPAREN, 1},
-                   {"[", TOKEN_LBRACKET, 1},
-                   {"]", TOKEN_RBRACKET, 1},
-                   {"{", TOKEN_LBRACE, 1},
-                   {"}", TOKEN_RBRACE, 1},
-                   {"&", TOKEN_OPERAND, 1},
-                   {NULL, TOKEN_UNDEFINED, 0}};
+    TokenType type;
+  } operators[] = {{">>", 2, TOKEN_REDIRECT_APPEND},
+                   {"<<", 2, TOKEN_HEREDOC},
+                   {"<&", 2, TOKEN_REDIRECT_FD_IN},
+                   {">&", 2, TOKEN_REDIRECT_FD_OUT},
+                   {"&&", 2, TOKEN_AND},
+                   {"||", 2, TOKEN_OR},
+                   {";;", 2, TOKEN_DBL_SEMICOLON},
+                   {"|", 1, TOKEN_PIPE},
+                   {"<", 1, TOKEN_REDIRECT_IN},
+                   {">", 1, TOKEN_REDIRECT_OUT},
+                   {";", 1, TOKEN_SEMICOLON},
+                   {"$", 1, TOKEN_DOLLAR},
+                   {"(", 1, TOKEN_LPAREN},
+                   {")", 1, TOKEN_RPAREN},
+                   {"[", 1, TOKEN_LBRACKET},
+                   {"]", 1, TOKEN_RBRACKET},
+                   {"{", 1, TOKEN_LBRACE},
+                   {"}", 1, TOKEN_RBRACE},
+                   {"&", 1, TOKEN_OPERAND},
+                   {NULL, 0, TOKEN_UNDEFINED}};
 
   while (s[*i]) {
     size_t start = *i;
@@ -98,7 +98,7 @@ Token next_token(char *s, size_t *i) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (match(operators[j].s, s + *i)) {
         *i += operators[j].length;
-        return (Token){operators[j].type, NULL, start};
+        return (Token){NULL, start, operators[j].type};
       }
     }
 
@@ -112,7 +112,7 @@ Token next_token(char *s, size_t *i) {
         if (s[*i]) {
           ++(*i);
         } else {
-          return (Token){TOKEN_UNDEFINED, NULL, start};
+          return (Token){NULL, start, TOKEN_UNDEFINED};
         }
       } else if (s[*i] == '\"' || s[*i] == '\'') {
         char quote = s[(*i)++];
@@ -129,7 +129,7 @@ Token next_token(char *s, size_t *i) {
         if (s[*i] == quote) {
           ++(*i);
         } else {
-          return (Token){TOKEN_UNDEFINED, NULL, start};
+          return (Token){NULL, start, TOKEN_UNDEFINED};
         }
       } else {
         ++(*i);
@@ -137,10 +137,10 @@ Token next_token(char *s, size_t *i) {
     }
 
     char *word = strndup(s + start, *i - start);
-    return (Token){TOKEN_WORD, word, start};
+    return (Token){word, start, TOKEN_WORD};
   }
 
-  return (Token){TOKEN_EOF, NULL, *i};
+  return (Token){NULL, *i, TOKEN_EOF};
 }
 
 bool tokenize(char *s, Tokens *tokens) {

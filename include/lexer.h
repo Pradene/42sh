@@ -29,9 +29,9 @@ typedef enum {
 } TokenType;
 
 typedef struct {
-  TokenType type;
   char *s;
   size_t position;
+  TokenType type;
 } Token;
 
 typedef struct {
