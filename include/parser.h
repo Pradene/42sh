@@ -1,7 +1,6 @@
 #pragma once
 
 #include "lexer.h"
-#include "vec.h"
 #include <stdbool.h>
 
 typedef enum AstNodeType {
@@ -24,13 +23,12 @@ typedef struct Redirection {
 } Redirection;
 
 typedef struct CommandArgs {
-  char **data;
-  size_t size;
-  size_t capacity;
 } CommandArgs;
 
 typedef struct Command {
-  CommandArgs args;
+  char **data;
+  size_t size;
+  size_t capacity;
 } Command;
 
 typedef struct Operator {
@@ -47,6 +45,7 @@ typedef struct AstNode {
     Command command;
     Operator operator;
     Group group;
+    Redirection redirection;
   };
   AstNodeType type;
 } AstNode;

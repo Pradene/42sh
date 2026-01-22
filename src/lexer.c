@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "error.h"
 #include "vec.h"
 
 #include <ctype.h>
@@ -96,7 +97,8 @@ TokenResult next_token(char *s, size_t *i) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (match(operators[j].s, s + *i)) {
         *i += operators[j].length;
-        return (TokenResult){.is_ok = true, .ok = {NULL, start, operators[j].type}};
+        return (TokenResult){.is_ok = true,
+                             .ok = {NULL, start, operators[j].type}};
       }
     }
 
@@ -110,7 +112,7 @@ TokenResult next_token(char *s, size_t *i) {
         if (s[*i]) {
           ++(*i);
         } else {
-          return (TokenResult){.is_ok = false, .err = 1};
+          return (TokenResult){.is_ok = false, .err = INCOMPLETE_INPUT};
         }
       } else if (s[*i] == '\"' || s[*i] == '\'') {
         char quote = s[(*i)++];
@@ -127,7 +129,7 @@ TokenResult next_token(char *s, size_t *i) {
         if (s[*i] == quote) {
           ++(*i);
         } else {
-          return (TokenResult){.is_ok = false, .err = 1};
+          return (TokenResult){.is_ok = false, .err = INCOMPLETE_INPUT};
         }
       } else {
         ++(*i);

@@ -14,21 +14,18 @@ void ast_free(AstNode *root) {
   case NODE_SEMICOLON:
   case NODE_BACKGROUND:
   case NODE_PIPE:
-    if (root->operator.left)
-      ast_free(root->operator.left);
-    if (root->operator.right)
-      ast_free(root->operator.right);
+    ast_free(root->operator.left);
+    ast_free(root->operator.right);
     break;
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
-      free(vec_at(&root->command.args, i));
+    for (size_t i = 0; i < vec_size(&root->command); ++i) {
+      free(vec_at(&root->command, i));
     }
-    vec_free(&root->command.args);
+    vec_free(&root->command);
     break;
   case NODE_PAREN:
   case NODE_BRACE:
-    if (root->group.inner)
-      ast_free(root->group.inner);
+    ast_free(root->group.inner);
     break;
   default:
     return;
@@ -46,8 +43,8 @@ static void ast_print_inner(AstNode *root, int depth) {
   switch (root->type) {
   case NODE_COMMAND:
     printf("COMMAND: ");
-    for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
-      printf("%s ", vec_at(&root->command.args, i));
+    for (size_t i = 0; i < vec_size(&root->command); ++i) {
+      printf("%s ", vec_at(&root->command, i));
     }
     printf("\n");
     break;
@@ -73,31 +70,23 @@ static void ast_print_inner(AstNode *root, int depth) {
   case NODE_SEMICOLON:
     printf("SEMICOLON (;)\n");
     ast_print_inner(root->operator.left, depth + 1);
-    if (root->operator.right) {
-      ast_print_inner(root->operator.right, depth + 1);
-    }
+    ast_print_inner(root->operator.right, depth + 1);
     break;
 
   case NODE_BACKGROUND:
     printf("BACKGROUND (&)\n");
     ast_print_inner(root->operator.left, depth + 1);
-    if (root->operator.right) {
-      ast_print_inner(root->operator.right, depth + 1);
-    }
+    ast_print_inner(root->operator.right, depth + 1);
     break;
 
   case NODE_PAREN:
     printf("PARENTHESIS ( () )\n");
-    if (root->group.inner) {
-      ast_print_inner(root->group.inner, depth + 1);
-    }
+    ast_print_inner(root->group.inner, depth + 1);
     break;
 
   case NODE_BRACE:
     printf("BRACE ( {} )\n");
-    if (root->group.inner) {
-      ast_print_inner(root->group.inner, depth + 1);
-    }
+    ast_print_inner(root->group.inner, depth + 1);
     break;
 
   default:
