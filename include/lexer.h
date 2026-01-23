@@ -58,4 +58,6 @@ typedef struct {
 } LexResult;
 
 void tokens_free(Tokens *tokens);
+void tokens_print(Tokens *tokens);
+
 LexResult lex(char *s);
