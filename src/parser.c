@@ -20,10 +20,8 @@ static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root) {
   switch (token.type) {
   case TOKEN_REDIRECT_IN:
   case TOKEN_HEREDOC:
-  case TOKEN_REDIRECT_FD_IN:
   case TOKEN_REDIRECT_OUT:
   case TOKEN_REDIRECT_APPEND:
-  case TOKEN_REDIRECT_FD_OUT:
     ++(*i);
     if (*i >= vec_size(tokens) || vec_at(tokens, *i).type != TOKEN_WORD) {
       return UNEXPECTED_TOKEN;
@@ -34,7 +32,7 @@ static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root) {
     }
     (*root)->type = NODE_REDIRECT;
     (*root)->redirection.type = token.type;
-    (*root)->redirection.target = strdup(vec_at(tokens, *i - 1).s);
+    (*root)->redirection.target = strdup(vec_at(tokens, *i).s);
     if (!(*root)->redirection.target) {
       free(*root);
       return MEM_ALLOCATION_FAILED;
@@ -81,7 +79,7 @@ static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
     }
   }
 
-  if (vec_size(&node->command) != 0) {
+  if (vec_size(&node->command) != 0 || node->command.redirect != NULL) {
     *root = node;
     return OK;
   } else {
