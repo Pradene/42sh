@@ -269,10 +269,13 @@ static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
 
     AstNode *right = NULL;
     if (*i < vec_size(tokens)) {
-      err = parse_logical(tokens, i, &right);
-      if (err != OK) {
-        ast_free(left);
-        return err;
+      Token next = vec_at(tokens, *i);
+      if (next.type != TOKEN_RPAREN && next.type != TOKEN_RBRACE) {
+        err = parse_logical(tokens, i, &right);
+        if (err != OK) {
+          ast_free(left);
+          return err;
+        }
       }
     }
 
