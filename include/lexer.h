@@ -57,4 +57,5 @@ typedef struct {
   };
 } LexResult;
 
+void tokens_free(Tokens *tokens);
 LexResult lex(char *s);
