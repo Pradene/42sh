@@ -33,6 +33,7 @@ static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root) {
     (*root)->type = NODE_REDIRECT;
     (*root)->redirection.type = token.type;
     (*root)->redirection.target = strdup(vec_at(tokens, *i).s);
+    (*root)->redirection.next = NULL;
     if (!(*root)->redirection.target) {
       free(*root);
       return MEM_ALLOCATION_FAILED;
@@ -63,9 +64,9 @@ static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
         return MEM_ALLOCATION_FAILED;
       }
       vec_push(&node->command, s);
-    } else if (token.type == TOKEN_REDIRECT_OUT || token.type == TOKEN_REDIRECT_APPEND ||
-               token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_HEREDOC ||
-               token.type == TOKEN_REDIRECT_FD_OUT || token.type == TOKEN_REDIRECT_FD_IN) {
+    } else if (token.type == TOKEN_REDIRECT_OUT ||
+               token.type == TOKEN_REDIRECT_APPEND ||
+               token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_HEREDOC) {
       AstNode *redirect = NULL;
       StatusCode err = parse_redirect(tokens, i, &redirect);
       if (err != OK) {
@@ -136,6 +137,24 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
   }
   node->type = type;
   node->group.inner = inner;
+  node->group.redirect = NULL;
+
+  while (*i < vec_size(tokens)) {
+    Token token = vec_at(tokens, *i);
+    if (token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_REDIRECT_OUT ||
+        token.type == TOKEN_REDIRECT_APPEND || token.type == TOKEN_HEREDOC) {
+      AstNode *redirect = NULL;
+      StatusCode err = parse_redirect(tokens, i, &redirect);
+      if (err != OK) {
+        ast_free(node);
+        return UNEXPECTED_TOKEN;
+      }
+      node->group.redirect = redirect;
+    } else {
+      break;
+    }
+  }
+
   *root = node;
   return OK;
 }
@@ -173,7 +192,7 @@ static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
     node->operator.left = left;
     left = node;
   }
-  
+
   *root = left;
   return OK;
 }
@@ -222,7 +241,7 @@ static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
     node->operator.right = right;
     left = node;
   }
-  
+
   *root = left;
   return OK;
 }
@@ -278,16 +297,16 @@ StatusCode parse(Tokens *tokens, AstNode **root) {
   size_t i = 0;
   AstNode *node = NULL;
   StatusCode err = parse_sequence(tokens, &i, &node);
-  
+
   if (err != OK) {
     return err;
   }
-  
+
   if (i < vec_size(tokens)) {
     ast_free(node);
     return UNEXPECTED_TOKEN;
   }
-  
+
   *root = node;
   return OK;
 }

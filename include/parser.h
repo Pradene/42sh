@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 typedef enum AstNodeType {
-  NODE_UNDEFINED,
   NODE_COMMAND,
   NODE_REDIRECT,
   NODE_AND,
@@ -37,6 +36,7 @@ typedef struct Operator {
 
 typedef struct Group {
   struct AstNode *inner;
+  struct AstNode *redirect;
 } Group;
 
 typedef struct AstNode {
@@ -52,4 +52,4 @@ typedef struct AstNode {
 void ast_print(AstNode *root);
 void ast_free(AstNode *root);
 
-StatusCode parse(Tokens *tokens,AstNode **root);
+StatusCode parse(Tokens *tokens, AstNode **root);
