@@ -3,12 +3,15 @@
 #include "vec.h"
 
 #include <ctype.h>
-#include <string.h>
 
-static bool charset_contains(const char *set, char c) { return strchr(set, c); }
-
-static bool match(const char *s1, const char *s2) {
-  return !strncmp(s1, s2, strlen(s1));
+void tokens_free(Tokens *tokens) {
+  for (size_t i = 0; i < vec_size(tokens); ++i) {
+    Token token = vec_at(tokens, i);
+    if (token.s) {
+      free(token.s);
+    }
+  }
+  vec_free(tokens);
 }
 
 const char *token_type_str(TokenType type) {
@@ -95,7 +98,7 @@ TokenResult next_token(char *s, size_t *i) {
     }
 
     for (size_t j = 0; operators[j].s != NULL; j++) {
-      if (match(operators[j].s, s + *i)) {
+      if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
         return (TokenResult){.is_ok = true,
                              .ok = {NULL, start, operators[j].type}};
@@ -103,7 +106,7 @@ TokenResult next_token(char *s, size_t *i) {
     }
 
     while (s[*i]) {
-      if (isspace(s[*i]) || charset_contains("|&;[](){}<>", s[*i])) {
+      if (isspace(s[*i]) || strchr("|&;[](){}<>", s[*i])) {
         break;
       }
 

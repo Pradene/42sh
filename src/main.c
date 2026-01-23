@@ -1,10 +1,12 @@
+#include "error.h"
 #include "lexer.h"
 #include "parser.h"
 #include "sb.h"
-#include "vec.h"
 
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <stddef.h>
+#include <stdio.h>
 
 AstNode *get_statement() {
   StringBuffer sb = {0};
@@ -18,44 +20,37 @@ AstNode *get_statement() {
 
   while (true) {
     LexResult lex_result = lex(sb_as_cstr(&sb));
-    if (!lex_result.is_ok && lex_result.err == 1) {
-      for (size_t i = 0; i < vec_size(&lex_result.ok); ++i) {
-        Token *token = &vec_at(&lex_result.ok, i);
-        if (token->s) {
-          free(token->s);
+    if (!lex_result.is_ok) {
+      if (lex_result.err == INCOMPLETE_INPUT) {
+        line = readline("> ");
+        if (!line) {
+          break;
         }
+        sb_append(&sb, line);
+        free(line);
+        continue;
       }
-      vec_free(&lex_result.ok);
-
-      line = readline("> ");
-      if (!line) {
-        break;
-      }
-      sb_append(&sb, line);
-      free(line);
-      continue;
+      break;
     }
-    lex_result.ok = lex_result.ok;
 
-    ParseResult parse_result = parse(&lex_result.ok);
-    if (!parse_result.is_ok && parse_result.err == 1) {
-      vec_free(&lex_result.ok);
-      line = readline("> ");
-      if (!line) {
-        break;
+    Tokens tokens = lex_result.ok;
+    ParseResult parse_result = parse(&tokens);
+    tokens_free(&tokens);
+    if (!parse_result.is_ok) {
+      if (parse_result.err == INCOMPLETE_INPUT) {
+        line = readline("> ");
+        if (!line) {
+          break;
+        }
+        sb_append(&sb, line);
+        free(line);
+        continue;
       }
-      sb_append(&sb, line);
-      free(line);
-      continue;
-    } else if (!parse_result.is_ok) {
-      vec_free(&lex_result.ok);
       break;
     }
 
     add_history(sb_as_cstr(&sb));
-    vec_free(&lex_result.ok);
     sb_free(&sb);
-
     return parse_result.ok;
   }
 
