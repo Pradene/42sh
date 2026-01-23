@@ -50,8 +50,7 @@ const char *token_type_cstr(TokenType type) {
 void tokens_print(Tokens *tokens) {
   for (size_t i = 0; i < vec_size(tokens); ++i) {
     Token token = vec_at(tokens, i);
-    printf("%s: %s\n", token_type_cstr(token.type), token.s ? token.s : ""
-    );
+    printf("%s: %s\n", token_type_cstr(token.type), token.s ? token.s : "");
   }
 }
 

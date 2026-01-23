@@ -4,11 +4,47 @@
 #include "vec.h"
 #include <stdio.h>
 
+static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root);
+
+static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root) {
+  if (*i >= vec_size(tokens)) {
+    return UNEXPECTED_TOKEN;
+  }
+
+  Token token = vec_at(tokens, *i);
+  switch (token.type) {
+  case TOKEN_REDIRECT_IN:
+  case TOKEN_HEREDOC:
+  case TOKEN_REDIRECT_FD_IN:
+  case TOKEN_REDIRECT_OUT:
+  case TOKEN_REDIRECT_APPEND:
+  case TOKEN_REDIRECT_FD_OUT:
+    ++(*i);
+    if (*i >= vec_size(tokens) || vec_at(tokens, *i).type != TOKEN_WORD) {
+      return UNEXPECTED_TOKEN;
+    }
+    (*root) = malloc(sizeof(AstNode));
+    if (!(*root)) {
+      return MEM_ALLOCATION_FAILED;
+    }
+    (*root)->type = NODE_REDIRECT;
+    (*root)->redirection.type = token.type;
+    (*root)->redirection.target = strdup(vec_at(tokens, *i - 1).s);
+    if (!(*root)->redirection.target) {
+      free(*root);
+      return MEM_ALLOCATION_FAILED;
+    }
+    ++(*i);
+    return OK;
+  default:
+    return OK;
+  }
+}
 
 static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
@@ -20,18 +56,29 @@ static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
   node->command = (Command){0};
   while (*i < vec_size(tokens)) {
     Token token = vec_at(tokens, *i);
-    if (token.type != TOKEN_WORD) {
+
+    if (token.type == TOKEN_WORD) {
+      ++(*i);
+      char *s = strdup(token.s);
+      if (!s) {
+        free(node);
+        return MEM_ALLOCATION_FAILED;
+      }
+      vec_push(&node->command, s);
+    } else if (token.type == TOKEN_REDIRECT_OUT || token.type == TOKEN_REDIRECT_APPEND ||
+               token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_HEREDOC ||
+               token.type == TOKEN_REDIRECT_FD_OUT || token.type == TOKEN_REDIRECT_FD_IN) {
+      AstNode *redirect = NULL;
+      StatusCode err = parse_redirect(tokens, i, &redirect);
+      if (err != OK) {
+        ast_free(redirect);
+        free(node);
+        return err;
+      }
+      node->command.redirect = redirect;
+    } else {
       break;
     }
-
-    ++(*i);
-
-    char *s = strdup(token.s);
-    if (!s) {
-      free(node);
-      return MEM_ALLOCATION_FAILED;
-    }
-    vec_push(&node->command, s);
   }
 
   if (vec_size(&node->command) != 0) {

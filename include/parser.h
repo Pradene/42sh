@@ -17,18 +17,17 @@ typedef enum AstNodeType {
 } AstNodeType;
 
 typedef struct Redirection {
-  char *target;
   int fd;
-  char *type;
+  TokenType type;
+  char *target;
+  struct AstNode *next;
 } Redirection;
-
-typedef struct CommandArgs {
-} CommandArgs;
 
 typedef struct Command {
   char **data;
   size_t size;
   size_t capacity;
+  struct AstNode *redirect;
 } Command;
 
 typedef struct Operator {

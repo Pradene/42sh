@@ -19,8 +19,9 @@ AstNode *get_statement() {
   free(line);
 
   while (true) {
-    Tokens tokens = {0};
     StatusCode status;
+    Tokens tokens = {0};
+    AstNode *root = NULL;
 
     status = lex(sb_as_cstr(&sb), &tokens);
     if (status != OK) {
@@ -36,7 +37,6 @@ AstNode *get_statement() {
       break;
     }
 
-    AstNode *root = NULL;
     status = parse(&tokens, &root);
     tokens_free(&tokens);
     if (status != OK) {

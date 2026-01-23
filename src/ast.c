@@ -9,6 +9,9 @@ void ast_free(AstNode *root) {
   }
 
   switch (root->type) {
+  case NODE_REDIRECT:
+    free(root->redirection.target);
+    break;
   case NODE_AND:
   case NODE_OR:
   case NODE_SEMICOLON:
@@ -18,6 +21,7 @@ void ast_free(AstNode *root) {
     ast_free(root->operator.right);
     break;
   case NODE_COMMAND:
+    ast_free(root->command.redirect);
     for (size_t i = 0; i < vec_size(&root->command); ++i) {
       free(vec_at(&root->command, i));
     }
@@ -47,6 +51,7 @@ static void ast_print_inner(AstNode *root, int depth) {
       printf("%s ", vec_at(&root->command, i));
     }
     printf("\n");
+    ast_print_inner(root->command.redirect, depth + 1);
     break;
 
   case NODE_PIPE:
@@ -87,6 +92,10 @@ static void ast_print_inner(AstNode *root, int depth) {
   case NODE_BRACE:
     printf("BRACE ( {} )\n");
     ast_print_inner(root->group.inner, depth + 1);
+    break;
+
+  case NODE_REDIRECT:
+    printf("REDIRECT: %s\n", root->redirection.target);
     break;
 
   default:
