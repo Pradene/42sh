@@ -4,16 +4,16 @@
 #include "vec.h"
 #include <stdio.h>
 
-static ParseResult parse_command(Tokens *tokens, size_t *i);
-static ParseResult parse_group(Tokens *tokens, size_t *i);
-static ParseResult parse_pipeline(Tokens *tokens, size_t *i);
-static ParseResult parse_logical(Tokens *tokens, size_t *i);
-static ParseResult parse_sequence(Tokens *tokens, size_t *i);
+static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root);
 
-static ParseResult parse_command(Tokens *tokens, size_t *i) {
+static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
-    return (ParseResult){.is_ok = false, .err = MEM_ALLOCATION_FAILED};
+    return MEM_ALLOCATION_FAILED;
   }
 
   node->type = NODE_COMMAND;
@@ -29,25 +29,26 @@ static ParseResult parse_command(Tokens *tokens, size_t *i) {
     char *s = strdup(token.s);
     if (!s) {
       free(node);
-      return (ParseResult){.is_ok = false, .err = MEM_ALLOCATION_FAILED};
+      return MEM_ALLOCATION_FAILED;
     }
     vec_push(&node->command, s);
   }
 
   if (vec_size(&node->command) != 0) {
-    return (ParseResult){.is_ok = true, .ok = node};
+    *root = node;
+    return OK;
   } else {
     free(node);
-    return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+    return UNEXPECTED_TOKEN;
   }
 }
 
-static ParseResult parse_group(Tokens *tokens, size_t *i) {
+static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
   TokenType close;
   AstNodeType type;
 
   if (*i >= vec_size(tokens)) {
-    return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+    return UNEXPECTED_TOKEN;
   }
 
   if (vec_at(tokens, *i).type == TOKEN_LPAREN) {
@@ -57,83 +58,86 @@ static ParseResult parse_group(Tokens *tokens, size_t *i) {
     close = TOKEN_RBRACE;
     type = NODE_BRACE;
   } else {
-    return parse_command(tokens, i);
+    return parse_command(tokens, i, root);
   }
 
   ++(*i);
 
   if (*i >= vec_size(tokens)) {
-    return (ParseResult){.is_ok = false, .err = INCOMPLETE_INPUT};
+    return INCOMPLETE_INPUT;
   }
 
-  ParseResult inner_result = parse_sequence(tokens, i);
-  if (!inner_result.is_ok) {
-    return inner_result;
-  }
-
-  if (*i >= vec_size(tokens)) {
-    ast_free(inner_result.ok);
-    return (ParseResult){.is_ok = false, .err = INCOMPLETE_INPUT};
+  AstNode *inner = NULL;
+  StatusCode err = parse_sequence(tokens, i, &inner);
+  if (err != OK) {
+    return err;
   }
 
   if (*i >= vec_size(tokens)) {
-    ast_free(inner_result.ok);
-    return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+    ast_free(inner);
+    return INCOMPLETE_INPUT;
   }
+
   if (vec_at(tokens, *i).type != close) {
-    ast_free(inner_result.ok);
-    return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+    ast_free(inner);
+    return UNEXPECTED_TOKEN;
   }
   ++(*i);
 
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
-    ast_free(inner_result.ok);
-    return (ParseResult){.is_ok = false, .err = MEM_ALLOCATION_FAILED};
+    ast_free(inner);
+    return MEM_ALLOCATION_FAILED;
   }
   node->type = type;
-  node->group.inner = inner_result.ok;
-  return (ParseResult){.is_ok = true, .ok = node};
+  node->group.inner = inner;
+  *root = node;
+  return OK;
 }
 
-static ParseResult parse_pipeline(Tokens *tokens, size_t *i) {
-  ParseResult left_result = parse_group(tokens, i);
-  if (!left_result.is_ok) {
-    return left_result;
+static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
+  AstNode *left = NULL;
+  StatusCode err = parse_group(tokens, i, &left);
+  if (err != OK) {
+    return err;
   }
 
   while (*i < vec_size(tokens) && vec_at(tokens, *i).type == TOKEN_PIPE) {
     ++(*i);
 
-    ParseResult right_result = parse_group(tokens, i);
-    if (!right_result.is_ok) {
-      ast_free(left_result.ok);
+    AstNode *right = NULL;
+    err = parse_group(tokens, i, &right);
+    if (err != OK) {
+      ast_free(left);
       if (*i >= vec_size(tokens)) {
-        return (ParseResult){.is_ok = false, .err = INCOMPLETE_INPUT};
+        return INCOMPLETE_INPUT;
       } else {
-        return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+        return UNEXPECTED_TOKEN;
       }
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
     if (!node) {
-      ast_free(left_result.ok);
-      ast_free(right_result.ok);
-      return (ParseResult){.is_ok = false, .err = MEM_ALLOCATION_FAILED};
+      ast_free(left);
+      ast_free(right);
+      return MEM_ALLOCATION_FAILED;
     }
 
     node->type = NODE_PIPE;
-    node->operator.right = right_result.ok;
-    node->operator.left = left_result.ok;
-    left_result.ok = node;
+    node->operator.right = right;
+    node->operator.left = left;
+    left = node;
   }
-  return left_result;
+  
+  *root = left;
+  return OK;
 }
 
-static ParseResult parse_logical(Tokens *tokens, size_t *i) {
-  ParseResult left_result = parse_pipeline(tokens, i);
-  if (!left_result.is_ok) {
-    return left_result;
+static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
+  AstNode *left = NULL;
+  StatusCode err = parse_pipeline(tokens, i, &left);
+  if (err != OK) {
+    return err;
   }
 
   while (*i < vec_size(tokens)) {
@@ -150,35 +154,39 @@ static ParseResult parse_logical(Tokens *tokens, size_t *i) {
 
     ++(*i);
 
-    ParseResult right_result = parse_pipeline(tokens, i);
-    if (!right_result.is_ok) {
-      ast_free(left_result.ok);
+    AstNode *right = NULL;
+    err = parse_pipeline(tokens, i, &right);
+    if (err != OK) {
+      ast_free(left);
       if (*i >= vec_size(tokens)) {
-        return (ParseResult){.is_ok = false, .err = INCOMPLETE_INPUT};
+        return INCOMPLETE_INPUT;
       } else {
-        return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+        return UNEXPECTED_TOKEN;
       }
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
     if (!node) {
-      ast_free(left_result.ok);
-      ast_free(right_result.ok);
-      return (ParseResult){.is_ok = false, .err = MEM_ALLOCATION_FAILED};
+      ast_free(left);
+      ast_free(right);
+      return MEM_ALLOCATION_FAILED;
     }
 
     node->type = type;
-    node->operator.left = left_result.ok;
-    node->operator.right = right_result.ok;
-    left_result.ok = node;
+    node->operator.left = left;
+    node->operator.right = right;
+    left = node;
   }
-  return left_result;
+  
+  *root = left;
+  return OK;
 }
 
-static ParseResult parse_sequence(Tokens *tokens, size_t *i) {
-  ParseResult left_result = parse_logical(tokens, i);
-  if (!left_result.is_ok) {
-    return left_result;
+static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
+  AstNode *left = NULL;
+  StatusCode err = parse_logical(tokens, i, &left);
+  if (err != OK) {
+    return err;
   }
 
   while (*i < vec_size(tokens)) {
@@ -195,35 +203,46 @@ static ParseResult parse_sequence(Tokens *tokens, size_t *i) {
 
     ++(*i);
 
-    ParseResult right_result;
+    AstNode *right = NULL;
     if (*i < vec_size(tokens)) {
-      right_result = parse_logical(tokens, i);
-    } else {
-      right_result = (ParseResult){.is_ok = true, .ok = NULL};
+      err = parse_logical(tokens, i, &right);
+      if (err != OK) {
+        ast_free(left);
+        return err;
+      }
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
     if (!node) {
-      ast_free(left_result.ok);
-      ast_free(right_result.ok);
-      return (ParseResult){.is_ok = false, .err = MEM_ALLOCATION_FAILED};
+      ast_free(left);
+      ast_free(right);
+      return MEM_ALLOCATION_FAILED;
     }
 
     node->type = type;
-    node->operator.left = left_result.ok;
-    node->operator.right = right_result.is_ok ? right_result.ok : NULL;
-    left_result.ok = node;
+    node->operator.left = left;
+    node->operator.right = right;
+    left = node;
   }
 
-  return left_result;
+  *root = left;
+  return OK;
 }
 
-ParseResult parse(Tokens *tokens) {
+StatusCode parse(Tokens *tokens, AstNode **root) {
   size_t i = 0;
-  ParseResult result = parse_sequence(tokens, &i);
-  if (result.is_ok && i < vec_size(tokens)) {
-    ast_free(result.ok);
-    return (ParseResult){.is_ok = false, .err = UNEXPECTED_TOKEN};
+  AstNode *node = NULL;
+  StatusCode err = parse_sequence(tokens, &i, &node);
+  
+  if (err != OK) {
+    return err;
   }
-  return result;
+  
+  if (i < vec_size(tokens)) {
+    ast_free(node);
+    return UNEXPECTED_TOKEN;
+  }
+  
+  *root = node;
+  return OK;
 }

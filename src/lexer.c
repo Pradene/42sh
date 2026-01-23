@@ -55,7 +55,7 @@ void tokens_print(Tokens *tokens) {
   }
 }
 
-TokenResult next_token(char *s, size_t *i) {
+StatusCode next_token(char *s, size_t *i, Token *token) {
   static const struct {
     const char *s;
     size_t length;
@@ -92,8 +92,8 @@ TokenResult next_token(char *s, size_t *i) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
-        return (TokenResult){.is_ok = true,
-                             .ok = {NULL, start, operators[j].type}};
+        *token = (Token){.s = NULL, .position = start, .type = operators[j].type};
+        return OK;
       }
     }
 
@@ -107,7 +107,7 @@ TokenResult next_token(char *s, size_t *i) {
         if (s[*i]) {
           ++(*i);
         } else {
-          return (TokenResult){.is_ok = false, .err = INCOMPLETE_INPUT};
+          return INCOMPLETE_INPUT;
         }
       } else if (s[*i] == '\"' || s[*i] == '\'') {
         char quote = s[(*i)++];
@@ -124,7 +124,7 @@ TokenResult next_token(char *s, size_t *i) {
         if (s[*i] == quote) {
           ++(*i);
         } else {
-          return (TokenResult){.is_ok = false, .err = INCOMPLETE_INPUT};
+          return INCOMPLETE_INPUT;
         }
       } else {
         ++(*i);
@@ -132,28 +132,31 @@ TokenResult next_token(char *s, size_t *i) {
     }
 
     char *word = strndup(s + start, *i - start);
-    return (TokenResult){.is_ok = true, .ok = {word, start, TOKEN_WORD}};
+    *token = (Token){.s = word, .position = start, .type = TOKEN_WORD};
+    return OK;
   }
 
-  return (TokenResult){.is_ok = true, .ok = {NULL, *i, TOKEN_EOF}};
+  *token = (Token){.s = NULL, .position = *i, .type = TOKEN_EOF};
+  return OK;
 }
 
-LexResult lex(char *s) {
-  Tokens tokens = {0};
+StatusCode lex(char *input, Tokens *tokens) {
+  *tokens = (Tokens){0};
   size_t position = 0;
 
   while (true) {
-    TokenResult result = next_token(s, &position);
-    if (!result.is_ok) {
-      return (LexResult){.is_ok = false, .err = result.err};
+    Token token;
+    StatusCode err = next_token(input, &position, &token);
+    if (err != OK) {
+      tokens_free(tokens);
+      return err;
     }
 
-    Token token = result.ok;
     if (token.type == TOKEN_EOF) {
       break;
     }
-    vec_push(&tokens, token);
+    vec_push(tokens, token);
   }
 
-  return (LexResult){.is_ok = true, .ok = tokens};
+  return OK;
 }

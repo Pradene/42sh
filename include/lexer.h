@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "error.h"
+
 typedef enum {
   TOKEN_LPAREN,
   TOKEN_RPAREN,
@@ -41,23 +43,7 @@ typedef struct {
 
 const char *token_type_str(TokenType type);
 
-typedef struct {
-  bool is_ok;
-  union {
-    int err;
-    Token ok;
-  };
-} TokenResult;
-
-typedef struct {
-  bool is_ok;
-  union {
-    int err;
-    Tokens ok;
-  };
-} LexResult;
-
 void tokens_free(Tokens *tokens);
 void tokens_print(Tokens *tokens);
 
-LexResult lex(char *s);
+StatusCode lex(char *input, Tokens *tokens);
