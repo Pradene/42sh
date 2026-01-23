@@ -29,6 +29,7 @@ void ast_free(AstNode *root) {
     break;
   case NODE_PAREN:
   case NODE_BRACE:
+    ast_free(root->group.redirect);
     ast_free(root->group.inner);
     break;
   default:
@@ -87,11 +88,13 @@ static void ast_print_inner(AstNode *root, int depth) {
   case NODE_PAREN:
     printf("PARENTHESIS ( () )\n");
     ast_print_inner(root->group.inner, depth + 1);
+    ast_print_inner(root->group.redirect, depth + 1);
     break;
 
   case NODE_BRACE:
     printf("BRACE ( {} )\n");
     ast_print_inner(root->group.inner, depth + 1);
+    ast_print_inner(root->group.redirect, depth + 1);
     break;
 
   case NODE_REDIRECT:
