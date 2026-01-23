@@ -19,9 +19,12 @@ AstNode *get_statement() {
   free(line);
 
   while (true) {
-    LexResult lex_result = lex(sb_as_cstr(&sb));
-    if (!lex_result.is_ok) {
-      if (lex_result.err == INCOMPLETE_INPUT) {
+    Tokens tokens = {0};
+    StatusCode status;
+
+    status = lex(sb_as_cstr(&sb), &tokens);
+    if (status != OK) {
+      if (status == INCOMPLETE_INPUT) {
         line = readline("> ");
         if (!line) {
           break;
@@ -33,11 +36,11 @@ AstNode *get_statement() {
       break;
     }
 
-    Tokens tokens = lex_result.ok;
-    ParseResult parse_result = parse(&tokens);
+    AstNode *root = NULL;
+    status = parse(&tokens, &root);
     tokens_free(&tokens);
-    if (!parse_result.is_ok) {
-      if (parse_result.err == INCOMPLETE_INPUT) {
+    if (status != OK) {
+      if (status == INCOMPLETE_INPUT) {
         line = readline("> ");
         if (!line) {
           break;
@@ -51,7 +54,7 @@ AstNode *get_statement() {
 
     add_history(sb_as_cstr(&sb));
     sb_free(&sb);
-    return parse_result.ok;
+    return root;
   }
 
   sb_free(&sb);
