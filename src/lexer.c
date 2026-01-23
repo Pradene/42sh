@@ -3,6 +3,7 @@
 #include "vec.h"
 
 #include <ctype.h>
+#include <stdio.h>
 
 void tokens_free(Tokens *tokens) {
   for (size_t i = 0; i < vec_size(tokens); ++i) {
@@ -14,53 +15,44 @@ void tokens_free(Tokens *tokens) {
   vec_free(tokens);
 }
 
-const char *token_type_str(TokenType type) {
-  switch (type) {
-  case TOKEN_EOF:
-    return "EOF";
-  case TOKEN_WORD:
-    return "WORD";
-  case TOKEN_AND:
-    return "AND";
-  case TOKEN_OR:
-    return "OR";
-  case TOKEN_PIPE:
-    return "PIPE";
-  case TOKEN_SEMICOLON:
-    return "SEMICOLON";
-  case TOKEN_OPERAND:
-    return "OPERAND";
-  case TOKEN_DOLLAR:
-    return "DOLLAR";
-  case TOKEN_LPAREN:
-    return "LPAREN";
-  case TOKEN_RPAREN:
-    return "RPAREN";
-  case TOKEN_LBRACKET:
-    return "LBRACKET";
-  case TOKEN_RBRACKET:
-    return "RBRACKET";
-  case TOKEN_LBRACE:
-    return "LBRACE";
-  case TOKEN_RBRACE:
-    return "RBRACE";
-  case TOKEN_DBL_SEMICOLON:
-    return "DOUBLE_SEMICOLON";
-  case TOKEN_REDIRECT_OUT:
-    return "REDIRECT_OUT";
-  case TOKEN_REDIRECT_APPEND:
-    return "REDIRECT_APPEND";
-  case TOKEN_HEREDOC:
-    return "HEREDOC";
-  case TOKEN_REDIRECT_IN:
-    return "REDIRECT_IN";
-  case TOKEN_REDIRECT_FD_IN:
-    return "REDIRECT_FD_IN";
-  case TOKEN_REDIRECT_FD_OUT:
-    return "REDIRECT_FD_OUT";
+const char *token_type_cstr(TokenType type) {
+  static const char *names[] = {
+    [TOKEN_LPAREN] = "LPAREN",
+    [TOKEN_RPAREN] = "RPAREN",
+    [TOKEN_LBRACE] = "LBRACE",
+    [TOKEN_RBRACE] = "RBRACE",
+    [TOKEN_LBRACKET] = "LBRACKET",
+    [TOKEN_RBRACKET] = "RBRACKET",
+    [TOKEN_DOLLAR] = "DOLLAR",
+    [TOKEN_PIPE] = "PIPE",
+    [TOKEN_OPERAND] = "OPERAND",
+    [TOKEN_SEMICOLON] = "SEMICOLON",
+    [TOKEN_DBL_SEMICOLON] = "DOUBLE_SEMICOLON",
+    [TOKEN_AND] = "AND",
+    [TOKEN_OR] = "OR",
+    [TOKEN_WORD] = "WORD",
+    [TOKEN_EOF] = "EOF",
+    [TOKEN_REDIRECT_OUT] = "REDIRECT_OUT",
+    [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
+    [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
+    [TOKEN_HEREDOC] = "HEREDOC",
+    [TOKEN_REDIRECT_FD_OUT] = "REDIRECT_FD_OUT",
+    [TOKEN_REDIRECT_FD_IN] = "REDIRECT_FD_IN",
+  };
+
+  if (type < sizeof(names) / sizeof(names[0]) && names[type]) {
+    return names[type];
   }
 
-  __builtin_unreachable();
+  return "UNKNOWN";
+}
+
+void tokens_print(Tokens *tokens) {
+  for (size_t i = 0; i < vec_size(tokens); ++i) {
+    Token token = vec_at(tokens, i);
+    printf("%s: %s\n", token_type_cstr(token.type), token.s ? token.s : ""
+    );
+  }
 }
 
 TokenResult next_token(char *s, size_t *i) {
