@@ -1,5 +1,7 @@
-#include "parser.h"
+#include "ast.h"
 #include "vec.h"
+
+#include <stdlib.h>
 
 static char *strip_quotes(const char *s) {
   if (!s || s[0] == '\0') {
@@ -64,16 +66,16 @@ void stripping(AstNode *root) {
   case NODE_PAREN:
     stripping(root->group.inner);
 
-    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
-      Redirection redirect = vec_at(&root->command.redirects, i);
-      char *original = redirect.target;
+    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
+      Redir redir = vec_at(&root->command.redirs, i);
+      char *original = redir.target;
       char *stripped = strip_quotes(original);
 
       if (stripped) {
         free(original);
-        redirect.target = stripped;
-        vec_remove(&root->command.redirects, i);
-        vec_insert(&root->command.redirects, i, redirect);
+        redir.target = stripped;
+        vec_remove(&root->command.redirs, i);
+        vec_insert(&root->command.redirs, i, redir);
       }
     }
 
@@ -91,16 +93,16 @@ void stripping(AstNode *root) {
       }
     }
 
-    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
-      Redirection redirect = vec_at(&root->command.redirects, i);
-      char *original = redirect.target;
+    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
+      Redir redir = vec_at(&root->command.redirs, i);
+      char *original = redir.target;
       char *stripped = strip_quotes(original);
 
       if (stripped) {
         free(original);
-        redirect.target = stripped;
-        vec_remove(&root->command.redirects, i);
-        vec_insert(&root->command.redirects, i, redirect);
+        redir.target = stripped;
+        vec_remove(&root->command.redirs, i);
+        vec_insert(&root->command.redirs, i, redir);
       }
     }
 

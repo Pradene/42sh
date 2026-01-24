@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "ast.h"
 #include "vec.h"
 
 #include <stdio.h>
@@ -18,11 +18,11 @@ void ast_free(AstNode *root) {
     ast_free(root->operator.right);
     break;
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
-      Redirection redirect = vec_at(&root->command.redirects, i);
+    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
+      Redir redirect = vec_at(&root->command.redirs, i);
       free(redirect.target);
     }
-    vec_free(&root->command.redirects);
+    vec_free(&root->command.redirs);
     for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
       free(vec_at(&root->command.args, i));
     }
@@ -30,11 +30,11 @@ void ast_free(AstNode *root) {
     break;
   case NODE_PAREN:
   case NODE_BRACE:
-    for (size_t i = 0; i < vec_size(&root->group.redirects); ++i) {
-      Redirection redirect = vec_at(&root->group.redirects, i);
+    for (size_t i = 0; i < vec_size(&root->group.redirs); ++i) {
+      Redir redirect = vec_at(&root->group.redirs, i);
       free(redirect.target);
     }
-    vec_free(&root->group.redirects);
+    vec_free(&root->group.redirs);
     ast_free(root->group.inner);
     break;
   default:
@@ -44,26 +44,26 @@ void ast_free(AstNode *root) {
   free(root);
 }
 
-static void ast_print_redirects(Redirections *redirects, int depth) {
-  if (!redirects || redirects->size == 0) {
+static void ast_print_redirs(Redirs *redirs, int depth) {
+  if (!redirs || redirs->size == 0) {
     return;
   }
-  for (size_t i = 0; i < redirects->size; ++i) {
-    Redirection *redir = &redirects->data[i];
+  for (size_t i = 0; i < redirs->size; ++i) {
+    Redir *redir = &redirs->data[i];
     printf("%*s", (depth + 1) * 2, "");
 
     const char *type_str;
     switch (redir->type) {
-    case TOKEN_REDIRECT_IN:
+    case REDIRECT_IN:
       type_str = "<";
       break;
-    case TOKEN_REDIRECT_OUT:
+    case REDIRECT_OUT:
       type_str = ">";
       break;
-    case TOKEN_REDIRECT_APPEND:
+    case REDIRECT_APPEND:
       type_str = ">>";
       break;
-    case TOKEN_HEREDOC:
+    case REDIRECT_HEREDOC:
       type_str = "<<";
       break;
     default:
@@ -86,7 +86,7 @@ static void ast_print_inner(AstNode *root, int depth) {
       printf("%s ", root->command.args.data[i]);
     }
     printf("\n");
-    ast_print_redirects(&root->command.redirects, depth);
+    ast_print_redirs(&root->command.redirs, depth);
     break;
   case NODE_PIPE:
     printf("PIPE\n");
@@ -116,12 +116,12 @@ static void ast_print_inner(AstNode *root, int depth) {
   case NODE_PAREN:
     printf("PARENTHESIS ( () )\n");
     ast_print_inner(root->group.inner, depth + 1);
-    ast_print_redirects(&root->group.redirects, depth);
+    ast_print_redirs(&root->group.redirs, depth);
     break;
   case NODE_BRACE:
     printf("BRACE ( {} )\n");
     ast_print_inner(root->group.inner, depth + 1);
-    ast_print_redirects(&root->group.redirects, depth);
+    ast_print_redirs(&root->group.redirs, depth);
     break;
   default:
     break;

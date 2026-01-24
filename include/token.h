@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "error.h"
-
 typedef enum {
   TOKEN_LPAREN,
   TOKEN_RPAREN,
@@ -24,8 +22,6 @@ typedef enum {
   TOKEN_REDIRECT_APPEND,
   TOKEN_REDIRECT_IN,
   TOKEN_HEREDOC,
-  TOKEN_REDIRECT_FD_OUT,
-  TOKEN_REDIRECT_FD_IN,
 } TokenType;
 
 typedef struct {
@@ -40,9 +36,5 @@ typedef struct {
   size_t capacity;
 } Tokens;
 
-const char *token_type_str(TokenType type);
-
 void tokens_free(Tokens *tokens);
 void tokens_print(Tokens *tokens);
-
-StatusCode lex(char *input, Tokens *tokens);
