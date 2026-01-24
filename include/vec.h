@@ -54,7 +54,8 @@
       memmove(&(v)->data[(i) + 1], &(v)->data[i],                              \
               ((v)->size - (i)) * sizeof(*(v)->data));                         \
     }                                                                          \
-    (v)->data[(v)->size++] = (val);                                            \
+    (v)->data[(i)] = (val);                                                    \
+    (v)->size++;                                                               \
   } while (0)
 
 // Remove at index
