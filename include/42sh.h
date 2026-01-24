@@ -1,6 +1,8 @@
 #pragma once
 
-#include "parser.h"
+#include "ast.h"
+#include "error.h"
+#include "token.h"
 
 typedef struct {
   char **data;
@@ -13,3 +15,5 @@ void expansion(AstNode *root);
 void stripping(AstNode *root);
 void env_free(Environment *env);
 StatusCode env_copy(Environment *env, char **envp);
+StatusCode lex(char *input, Tokens *tokens);
+StatusCode parse(Tokens *tokens, AstNode **root);

@@ -1,5 +1,5 @@
-#include "lexer.h"
 #include "error.h"
+#include "token.h"
 #include "vec.h"
 
 #include <ctype.h>
@@ -35,8 +35,6 @@ const char *token_type_cstr(TokenType type) {
       [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
       [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
       [TOKEN_HEREDOC] = "HEREDOC",
-      [TOKEN_REDIRECT_FD_OUT] = "REDIRECT_FD_OUT",
-      [TOKEN_REDIRECT_FD_IN] = "REDIRECT_FD_IN",
   };
 
   if (type < sizeof(names) / sizeof(names[0]) && names[type]) {
@@ -60,8 +58,6 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
     TokenType type;
   } operators[] = {{">>", 2, TOKEN_REDIRECT_APPEND},
                    {"<<", 2, TOKEN_HEREDOC},
-                   {"<&", 2, TOKEN_REDIRECT_FD_IN},
-                   {">&", 2, TOKEN_REDIRECT_FD_OUT},
                    {"&&", 2, TOKEN_AND},
                    {"||", 2, TOKEN_OR},
                    {";;", 2, TOKEN_DBL_SEMICOLON},

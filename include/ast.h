@@ -1,7 +1,6 @@
 #pragma once
 
-#include "lexer.h"
-#include <stdbool.h>
+#include <stdlib.h>
 
 typedef enum AstNodeType {
   NODE_COMMAND,
@@ -14,17 +13,24 @@ typedef enum AstNodeType {
   NODE_BRACE,
 } AstNodeType;
 
-typedef struct Redirection {
-  int fd;
-  TokenType type;
-  char *target;
-} Redirection;
+typedef enum RedirType {
+  REDIRECT_IN,
+  REDIRECT_OUT,
+  REDIRECT_APPEND,
+  REDIRECT_HEREDOC,
+} RedirType;
 
-typedef struct Redirections {
-  Redirection *data;
+typedef struct Redir {
+  RedirType type;
+  int fd;
+  char *target;
+} Redir;
+
+typedef struct Redirs {
+  Redir *data;
   size_t size;
   size_t capacity;
-} Redirections;
+} Redirs;
 
 typedef struct Arguments {
   char **data;
@@ -34,7 +40,7 @@ typedef struct Arguments {
 
 typedef struct Command {
   Arguments args;
-  Redirections redirects;
+  Redirs redirs;
 } Command;
 
 typedef struct Operator {
@@ -44,7 +50,7 @@ typedef struct Operator {
 
 typedef struct Group {
   struct AstNode *inner;
-  Redirections redirects;
+  Redirs redirs;
 } Group;
 
 typedef struct AstNode {
@@ -58,5 +64,3 @@ typedef struct AstNode {
 
 void ast_print(AstNode *root);
 void ast_free(AstNode *root);
-
-StatusCode parse(Tokens *tokens, AstNode **root);

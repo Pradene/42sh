@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "ast.h"
 #include "sb.h"
 #include "vec.h"
 
@@ -41,16 +41,16 @@ void expansion(AstNode *root) {
   case NODE_PAREN:
     expansion(root->group.inner);
 
-    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
-      Redirection redirect = vec_at(&root->command.redirects, i);
-      char *original = redirect.target;
+    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
+      Redir redir = vec_at(&root->command.redirs, i);
+      char *original = redir.target;
       char *expanded = expand(original);
 
       if (expanded) {
         free(original);
-        redirect.target = expanded;
-        vec_remove(&root->command.redirects, i);
-        vec_insert(&root->command.redirects, i, redirect);
+        redir.target = expanded;
+        vec_remove(&root->command.redirs, i);
+        vec_insert(&root->command.redirs, i, redir);
       }
     }
 
@@ -68,16 +68,16 @@ void expansion(AstNode *root) {
       }
     }
 
-    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
-      Redirection redirect = vec_at(&root->command.redirects, i);
-      char *original = redirect.target;
+    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
+      Redir redir = vec_at(&root->command.redirs, i);
+      char *original = redir.target;
       char *expanded = expand(original);
 
       if (expanded) {
         free(original);
-        redirect.target = expanded;
-        vec_remove(&root->command.redirects, i);
-        vec_insert(&root->command.redirects, i, redirect);
+        redir.target = expanded;
+        vec_remove(&root->command.redirs, i);
+        vec_insert(&root->command.redirs, i, redir);
       }
     }
 

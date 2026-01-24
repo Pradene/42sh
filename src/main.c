@@ -1,7 +1,5 @@
 #include "42sh.h"
 #include "error.h"
-#include "lexer.h"
-#include "parser.h"
 #include "sb.h"
 
 #include <readline/history.h>
