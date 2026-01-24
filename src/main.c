@@ -1,3 +1,4 @@
+#include "42sh.h"
 #include "error.h"
 #include "lexer.h"
 #include "parser.h"
@@ -5,13 +6,16 @@
 
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 AstNode *get_statement() {
   StringBuffer sb = {0};
   char *line = readline("$ ");
   if (!line) {
+    exit(EXIT_SUCCESS);
     return NULL;
   }
 
@@ -28,7 +32,8 @@ AstNode *get_statement() {
       if (status == INCOMPLETE_INPUT) {
         line = readline("> ");
         if (!line) {
-          break;
+          sb_free(&sb);
+          exit(EXIT_SUCCESS);
         }
         sb_append(&sb, line);
         free(line);
@@ -43,7 +48,8 @@ AstNode *get_statement() {
       if (status == INCOMPLETE_INPUT) {
         line = readline("> ");
         if (!line) {
-          break;
+          sb_free(&sb);
+          exit(EXIT_SUCCESS);
         }
         sb_append(&sb, line);
         free(line);
@@ -67,6 +73,17 @@ int main(int argc, char **argv, char **envp) {
   (void)envp;
 
   using_history();
+
+  struct sigaction sa;
+  sa.sa_handler = sigint_handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGINT, &sa, NULL);
+
+  sa.sa_handler = SIG_IGN;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGQUIT, &sa, NULL);
 
   while (true) {
     AstNode *root = get_statement();
