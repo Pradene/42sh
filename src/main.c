@@ -74,10 +74,23 @@ void quote_stripping(AstNode *root) {
   case NODE_BRACE:
   case NODE_PAREN:
     quote_stripping(root->group.inner);
+
+    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
+      Redirection redirect = vec_at(&root->command.redirects, i);
+      char *original = redirect.target;
+      char *stripped = strip_quotes(original);
+
+      if (stripped) {
+        free(original);
+        redirect.target = stripped;
+        vec_remove(&root->command.redirects, i);
+        vec_insert(&root->command.redirects, i, redirect);
+      }
+    }
+
     return;
 
   case NODE_COMMAND:
-
     for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
       char *original = vec_at(&root->command.args, i);
       char *stripped = strip_quotes(original);
@@ -88,6 +101,20 @@ void quote_stripping(AstNode *root) {
         vec_insert(&root->command.args, i, stripped);
       }
     }
+
+    for (size_t i = 0; i < vec_size(&root->command.redirects); ++i) {
+      Redirection redirect = vec_at(&root->command.redirects, i);
+      char *original = redirect.target;
+      char *stripped = strip_quotes(original);
+
+      if (stripped) {
+        free(original);
+        redirect.target = stripped;
+        vec_remove(&root->command.redirects, i);
+        vec_insert(&root->command.redirects, i, redirect);
+      }
+    }
+
     return;
   }
 }
