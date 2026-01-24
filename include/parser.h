@@ -5,7 +5,6 @@
 
 typedef enum AstNodeType {
   NODE_COMMAND,
-  NODE_REDIRECT,
   NODE_AND,
   NODE_OR,
   NODE_PIPE,

@@ -9,8 +9,6 @@ void ast_free(AstNode *root) {
   }
 
   switch (root->type) {
-  case NODE_REDIRECT:
-    break;
   case NODE_AND:
   case NODE_OR:
   case NODE_SEMICOLON:
