@@ -100,7 +100,18 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
         break;
       }
 
-      if (s[*i] == '\\') {
+      if (s[*i] == '$') {
+        if (s[*i + 1] && s[*i + 1] == '{') {
+          ++(*i);
+          while (s[*i] && s[*i] != '}') {
+            ++(*i);
+          }
+          if (s[*i] == '\0') {
+            return INCOMPLETE_INPUT;
+          }
+        }
+        ++(*i);
+      } else if (s[*i] == '\\') {
         ++(*i);
         if (s[*i]) {
           ++(*i);
