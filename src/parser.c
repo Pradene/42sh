@@ -68,11 +68,11 @@ static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
                token.type == TOKEN_REDIRECT_APPEND ||
                token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_HEREDOC) {
       AstNode *redirect = NULL;
-      StatusCode err = parse_redirect(tokens, i, &redirect);
-      if (err != OK) {
+      StatusCode status = parse_redirect(tokens, i, &redirect);
+      if (status != OK) {
         ast_free(redirect);
         free(node);
-        return err;
+        return status;
       }
       node->command.redirect = redirect;
     } else {
@@ -114,9 +114,9 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
   }
 
   AstNode *inner = NULL;
-  StatusCode err = parse_sequence(tokens, i, &inner);
-  if (err != OK) {
-    return err;
+  StatusCode status = parse_sequence(tokens, i, &inner);
+  if (status != OK) {
+    return status;
   }
 
   if (*i >= vec_size(tokens)) {
@@ -144,8 +144,8 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
     if (token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_REDIRECT_OUT ||
         token.type == TOKEN_REDIRECT_APPEND || token.type == TOKEN_HEREDOC) {
       AstNode *redirect = NULL;
-      StatusCode err = parse_redirect(tokens, i, &redirect);
-      if (err != OK) {
+      StatusCode status = parse_redirect(tokens, i, &redirect);
+      if (status != OK) {
         ast_free(node);
         return UNEXPECTED_TOKEN;
       }
@@ -161,17 +161,17 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
 
 static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
-  StatusCode err = parse_group(tokens, i, &left);
-  if (err != OK) {
-    return err;
+  StatusCode status = parse_group(tokens, i, &left);
+  if (status != OK) {
+    return status;
   }
 
   while (*i < vec_size(tokens) && vec_at(tokens, *i).type == TOKEN_PIPE) {
     ++(*i);
 
     AstNode *right = NULL;
-    err = parse_group(tokens, i, &right);
-    if (err != OK) {
+    status = parse_group(tokens, i, &right);
+    if (status != OK) {
       ast_free(left);
       if (*i >= vec_size(tokens)) {
         return INCOMPLETE_INPUT;
@@ -199,9 +199,9 @@ static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
 
 static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
-  StatusCode err = parse_pipeline(tokens, i, &left);
-  if (err != OK) {
-    return err;
+  StatusCode status = parse_pipeline(tokens, i, &left);
+  if (status != OK) {
+    return status;
   }
 
   while (*i < vec_size(tokens)) {
@@ -219,8 +219,8 @@ static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
     ++(*i);
 
     AstNode *right = NULL;
-    err = parse_pipeline(tokens, i, &right);
-    if (err != OK) {
+    status = parse_pipeline(tokens, i, &right);
+    if (status != OK) {
       ast_free(left);
       if (*i >= vec_size(tokens)) {
         return INCOMPLETE_INPUT;
@@ -248,9 +248,9 @@ static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
 
 static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
-  StatusCode err = parse_logical(tokens, i, &left);
-  if (err != OK) {
-    return err;
+  StatusCode status = parse_logical(tokens, i, &left);
+  if (status != OK) {
+    return status;
   }
 
   while (*i < vec_size(tokens)) {
@@ -271,10 +271,10 @@ static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
     if (*i < vec_size(tokens)) {
       Token next = vec_at(tokens, *i);
       if (next.type != TOKEN_RPAREN && next.type != TOKEN_RBRACE) {
-        err = parse_logical(tokens, i, &right);
-        if (err != OK) {
+        status = parse_logical(tokens, i, &right);
+        if (status != OK) {
           ast_free(left);
-          return err;
+          return status;
         }
       }
     }
@@ -299,10 +299,9 @@ static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
 StatusCode parse(Tokens *tokens, AstNode **root) {
   size_t i = 0;
   AstNode *node = NULL;
-  StatusCode err = parse_sequence(tokens, &i, &node);
-
-  if (err != OK) {
-    return err;
+  StatusCode status = parse_sequence(tokens, &i, &node);
+  if (status != OK) {
+    return status;
   }
 
   if (i < vec_size(tokens)) {

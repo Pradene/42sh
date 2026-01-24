@@ -17,27 +17,26 @@ void tokens_free(Tokens *tokens) {
 
 const char *token_type_cstr(TokenType type) {
   static const char *names[] = {
-    [TOKEN_LPAREN] = "LPAREN",
-    [TOKEN_RPAREN] = "RPAREN",
-    [TOKEN_LBRACE] = "LBRACE",
-    [TOKEN_RBRACE] = "RBRACE",
-    [TOKEN_LBRACKET] = "LBRACKET",
-    [TOKEN_RBRACKET] = "RBRACKET",
-    [TOKEN_DOLLAR] = "DOLLAR",
-    [TOKEN_PIPE] = "PIPE",
-    [TOKEN_OPERAND] = "OPERAND",
-    [TOKEN_SEMICOLON] = "SEMICOLON",
-    [TOKEN_DBL_SEMICOLON] = "DOUBLE_SEMICOLON",
-    [TOKEN_AND] = "AND",
-    [TOKEN_OR] = "OR",
-    [TOKEN_WORD] = "WORD",
-    [TOKEN_EOF] = "EOF",
-    [TOKEN_REDIRECT_OUT] = "REDIRECT_OUT",
-    [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
-    [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
-    [TOKEN_HEREDOC] = "HEREDOC",
-    [TOKEN_REDIRECT_FD_OUT] = "REDIRECT_FD_OUT",
-    [TOKEN_REDIRECT_FD_IN] = "REDIRECT_FD_IN",
+      [TOKEN_LPAREN] = "LPAREN",
+      [TOKEN_RPAREN] = "RPAREN",
+      [TOKEN_LBRACE] = "LBRACE",
+      [TOKEN_RBRACE] = "RBRACE",
+      [TOKEN_LBRACKET] = "LBRACKET",
+      [TOKEN_RBRACKET] = "RBRACKET",
+      [TOKEN_PIPE] = "PIPE",
+      [TOKEN_OPERAND] = "OPERAND",
+      [TOKEN_SEMICOLON] = "SEMICOLON",
+      [TOKEN_DBL_SEMICOLON] = "DOUBLE_SEMICOLON",
+      [TOKEN_AND] = "AND",
+      [TOKEN_OR] = "OR",
+      [TOKEN_WORD] = "WORD",
+      [TOKEN_EOF] = "EOF",
+      [TOKEN_REDIRECT_OUT] = "REDIRECT_OUT",
+      [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
+      [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
+      [TOKEN_HEREDOC] = "HEREDOC",
+      [TOKEN_REDIRECT_FD_OUT] = "REDIRECT_FD_OUT",
+      [TOKEN_REDIRECT_FD_IN] = "REDIRECT_FD_IN",
   };
 
   if (type < sizeof(names) / sizeof(names[0]) && names[type]) {
@@ -70,7 +69,6 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
                    {"<", 1, TOKEN_REDIRECT_IN},
                    {">", 1, TOKEN_REDIRECT_OUT},
                    {";", 1, TOKEN_SEMICOLON},
-                   {"$", 1, TOKEN_DOLLAR},
                    {"(", 1, TOKEN_LPAREN},
                    {")", 1, TOKEN_RPAREN},
                    {"[", 1, TOKEN_LBRACKET},
@@ -91,7 +89,8 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
-        *token = (Token){.s = NULL, .position = start, .type = operators[j].type};
+        *token =
+            (Token){.s = NULL, .position = start, .type = operators[j].type};
         return OK;
       }
     }
