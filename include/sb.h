@@ -26,7 +26,7 @@ typedef struct {
   } while (0)
 
 // Push an element to the back
-#define sb_appendc(v, c)                                                       \
+#define sb_append_char(v, c)                                                   \
   do {                                                                         \
     if ((v)->size >= (v)->capacity) {                                          \
       sb_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2);             \
