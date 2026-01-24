@@ -19,14 +19,23 @@ typedef struct Redirection {
   int fd;
   TokenType type;
   char *target;
-  struct AstNode *next;
 } Redirection;
 
-typedef struct Command {
+typedef struct Redirections {
+  Redirection *data;
+  size_t size;
+  size_t capacity;
+} Redirections;
+
+typedef struct Arguments {
   char **data;
   size_t size;
   size_t capacity;
-  struct AstNode *redirect;
+} Arguments;
+
+typedef struct Command {
+  Arguments args;
+  Redirections redirects;
 } Command;
 
 typedef struct Operator {
@@ -36,7 +45,7 @@ typedef struct Operator {
 
 typedef struct Group {
   struct AstNode *inner;
-  struct AstNode *redirect;
+  Redirections redirects;
 } Group;
 
 typedef struct AstNode {
@@ -44,7 +53,6 @@ typedef struct AstNode {
     Command command;
     Operator operator;
     Group group;
-    Redirection redirection;
   };
   AstNodeType type;
 } AstNode;

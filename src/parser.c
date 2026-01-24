@@ -4,14 +4,16 @@
 #include "vec.h"
 #include <stdio.h>
 
-static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_redirect(Tokens *tokens, size_t *i,
+                                 Redirection *redirect);
 static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root);
 
-static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_redirect(Tokens *tokens, size_t *i,
+                                 Redirection *redirect) {
   if (*i >= vec_size(tokens)) {
     return UNEXPECTED_TOKEN;
   }
@@ -26,22 +28,15 @@ static StatusCode parse_redirect(Tokens *tokens, size_t *i, AstNode **root) {
     if (*i >= vec_size(tokens) || vec_at(tokens, *i).type != TOKEN_WORD) {
       return UNEXPECTED_TOKEN;
     }
-    (*root) = malloc(sizeof(AstNode));
-    if (!(*root)) {
-      return MEM_ALLOCATION_FAILED;
-    }
-    (*root)->type = NODE_REDIRECT;
-    (*root)->redirection.type = token.type;
-    (*root)->redirection.target = strdup(vec_at(tokens, *i).s);
-    (*root)->redirection.next = NULL;
-    if (!(*root)->redirection.target) {
-      free(*root);
+    redirect->type = token.type;
+    redirect->target = strdup(vec_at(tokens, *i).s);
+    if (!redirect->target) {
       return MEM_ALLOCATION_FAILED;
     }
     ++(*i);
     return OK;
   default:
-    return OK;
+    return UNEXPECTED_TOKEN;
   }
 }
 
@@ -63,24 +58,24 @@ static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
         free(node);
         return MEM_ALLOCATION_FAILED;
       }
-      vec_push(&node->command, s);
+      vec_push(&node->command.args, s);
     } else if (token.type == TOKEN_REDIRECT_OUT ||
                token.type == TOKEN_REDIRECT_APPEND ||
                token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_HEREDOC) {
-      AstNode *redirect = NULL;
+      Redirection redirect = {0};
       StatusCode status = parse_redirect(tokens, i, &redirect);
       if (status != OK) {
-        ast_free(redirect);
         free(node);
         return status;
       }
-      node->command.redirect = redirect;
+      vec_push(&node->command.redirects, redirect);
     } else {
       break;
     }
   }
 
-  if (vec_size(&node->command) != 0 || node->command.redirect != NULL) {
+  if (vec_size(&node->command.args) != 0 ||
+      vec_size(&node->command.redirects) != 0) {
     *root = node;
     return OK;
   } else {
@@ -137,19 +132,20 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
   }
   node->type = type;
   node->group.inner = inner;
-  node->group.redirect = NULL;
+  node->group.redirects = (Redirections){0};
 
   while (*i < vec_size(tokens)) {
     Token token = vec_at(tokens, *i);
     if (token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_REDIRECT_OUT ||
         token.type == TOKEN_REDIRECT_APPEND || token.type == TOKEN_HEREDOC) {
-      AstNode *redirect = NULL;
+      Redirection redirect = {0};
       StatusCode status = parse_redirect(tokens, i, &redirect);
       if (status != OK) {
         ast_free(node);
         return UNEXPECTED_TOKEN;
       }
-      node->group.redirect = redirect;
+
+      vec_push(&node->group.redirects, redirect);
     } else {
       break;
     }
