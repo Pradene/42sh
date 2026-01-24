@@ -101,16 +101,25 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
       }
 
       if (s[*i] == '$') {
-        if (s[*i + 1] && s[*i + 1] == '{') {
+        ++(*i);
+        if (s[*i] && (s[*i] == '{' || s[*i] == '(')) {
+          char open = s[*i];
+          char close = (open == '{') ? '}' : ')';
+          int depth = 1;
+
           ++(*i);
-          while (s[*i] && s[*i] != '}') {
+          while (s[*i] && depth > 0) {
+            if (s[*i] == open) {
+              depth++;
+            } else if (s[*i] == close) {
+              depth--;
+            }
             ++(*i);
           }
-          if (s[*i] == '\0') {
+          if (depth != 0) {
             return INCOMPLETE_INPUT;
           }
         }
-        ++(*i);
       } else if (s[*i] == '\\') {
         ++(*i);
         if (s[*i]) {
