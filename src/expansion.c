@@ -5,7 +5,7 @@
 
 #include <ctype.h>
 
-static char *expand(const char *s, Environment *env) {
+static char *expand(const char *s, const Environment *env) {
   StringBuffer sb = {0};
 
   if (!s || s[0] == '\0') {
@@ -50,7 +50,7 @@ static char *expand(const char *s, Environment *env) {
           sb_append_char(&sb, '{');
           sb_append(&sb, s + start);
         }
-      } else if (isalnum(s[i]) || s[i] == '_') {
+      } else if (isalpha(s[i]) || s[i] == '_') {
         size_t start = i;
         while (isalnum(s[i]) || s[i] == '_') {
           ++i;
@@ -77,8 +77,7 @@ static char *expand(const char *s, Environment *env) {
   return sb_as_cstr(&sb);
 }
 
-void expansion(AstNode *root, Environment *env) {
-  (void)env;
+void expansion(AstNode *root, const Environment *env) {
   if (!root) {
     return;
   }

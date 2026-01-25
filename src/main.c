@@ -36,7 +36,7 @@ void execute_command(AstNode *root, Environment *env) {
   }
 }
 
-AstNode *get_statement() {
+AstNode *get_command() {
   StringBuffer sb = {0};
   char *line = readline("$ ");
   if (!line) {
@@ -97,7 +97,7 @@ int main(int argc, char **argv, char **envp) {
   (void)argv;
 
   Environment env = {0};
-  env_copy(&env, envp);
+  env_copy(&env, (const char **)envp);
 
   using_history();
 
@@ -112,7 +112,7 @@ int main(int argc, char **argv, char **envp) {
   sigaction(SIGQUIT, &sa, NULL);
 
   while (true) {
-    AstNode *root = get_statement();
+    AstNode *root = get_command();
     if (!root) {
       continue;
     }

@@ -7,8 +7,8 @@
 
 void sigint_handler(int code);
 
-void expansion(AstNode *root, Environment *env);
+void expansion(AstNode *root, const Environment *env);
 void stripping(AstNode *root);
 
-StatusCode lex(char *input, Tokens *tokens);
-StatusCode parse(Tokens *tokens, AstNode **root);
+StatusCode lex(const char *input, Tokens *tokens);
+StatusCode parse(const Tokens *tokens, AstNode **root);

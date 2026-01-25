@@ -5,14 +5,14 @@
 
 #include <stdio.h>
 
-static StatusCode parse_redir(Tokens *tokens, size_t *i, Redir *redir);
-static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir);
+static StatusCode parse_command(const Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_pipeline(const Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_logical(const Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_sequence(const Tokens *tokens, size_t *i, AstNode **root);
 
-static StatusCode parse_redir(Tokens *tokens, size_t *i, Redir *redir) {
+static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
   if (*i >= vec_size(tokens)) {
     return UNEXPECTED_TOKEN;
   }
@@ -53,7 +53,7 @@ static StatusCode parse_redir(Tokens *tokens, size_t *i, Redir *redir) {
   return OK;
 }
 
-static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_command(const Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
     return MEM_ALLOCATION_FAILED;
@@ -97,7 +97,7 @@ static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
   }
 }
 
-static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root) {
   TokenType close;
   AstNodeType type;
 
@@ -169,7 +169,7 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
 }
 
 
-static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_pipeline(const Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
   StatusCode status = parse_group(tokens, i, &left);
   if (status != OK) {
@@ -207,7 +207,7 @@ static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
   return OK;
 }
 
-static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_logical(const Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
   StatusCode status = parse_pipeline(tokens, i, &left);
   if (status != OK) {
@@ -256,7 +256,7 @@ static StatusCode parse_logical(Tokens *tokens, size_t *i, AstNode **root) {
   return OK;
 }
 
-static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_sequence(const Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
   StatusCode status = parse_logical(tokens, i, &left);
   if (status != OK) {
@@ -306,7 +306,7 @@ static StatusCode parse_sequence(Tokens *tokens, size_t *i, AstNode **root) {
   return OK;
 }
 
-StatusCode parse(Tokens *tokens, AstNode **root) {
+StatusCode parse(const Tokens *tokens, AstNode **root) {
   size_t i = 0;
   AstNode *node = NULL;
   StatusCode status = parse_sequence(tokens, &i, &node);
