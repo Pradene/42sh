@@ -125,6 +125,13 @@ void execute_simple_command(AstNode *node, Environment *env) {
       env_set(env, "_", path);
     }
 
+    struct sigaction sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = SIG_DFL;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGQUIT, &sa, NULL);
+
     apply_redirs(&node->command.redirs);
 
     vec_push(env, NULL);
@@ -137,6 +144,9 @@ void execute_simple_command(AstNode *node, Environment *env) {
   } else {
     int status;
     waitpid(pid, &status, 0);
+    if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
+      write(STDOUT_FILENO, "\n", 1);
+    }
   }
 }
 
