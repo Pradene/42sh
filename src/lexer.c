@@ -5,17 +5,7 @@
 #include <ctype.h>
 #include <stdio.h>
 
-void tokens_free(Tokens *tokens) {
-  for (size_t i = 0; i < vec_size(tokens); ++i) {
-    Token token = vec_at(tokens, i);
-    if (token.s) {
-      free(token.s);
-    }
-  }
-  vec_free(tokens);
-}
-
-const char *token_type_cstr(TokenType type) {
+const char *token_type_cstr(const TokenType type) {
   static const char *names[] = {
       [TOKEN_LPAREN] = "LPAREN",
       [TOKEN_RPAREN] = "RPAREN",
@@ -44,14 +34,24 @@ const char *token_type_cstr(TokenType type) {
   return "UNKNOWN";
 }
 
-void tokens_print(Tokens *tokens) {
+void tokens_free(Tokens *tokens) {
+  for (size_t i = 0; i < vec_size(tokens); ++i) {
+    Token token = vec_at(tokens, i);
+    if (token.s) {
+      free(token.s);
+    }
+  }
+  vec_free(tokens);
+}
+
+void tokens_print(const Tokens *tokens) {
   for (size_t i = 0; i < vec_size(tokens); ++i) {
     Token token = vec_at(tokens, i);
     printf("%s: %s\n", token_type_cstr(token.type), token.s ? token.s : "");
   }
 }
 
-StatusCode next_token(char *s, size_t *i, Token *token) {
+StatusCode next_token(const char *s, size_t *i, Token *token) {
   static const struct {
     const char *s;
     size_t length;
@@ -153,7 +153,7 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
   return OK;
 }
 
-StatusCode lex(char *input, Tokens *tokens) {
+StatusCode lex(const char *input, Tokens *tokens) {
   *tokens = (Tokens){0};
   size_t position = 0;
 

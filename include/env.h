@@ -11,5 +11,5 @@ typedef struct {
 } Environment;
 
 void env_free(Environment *env);
-StatusCode env_copy(Environment *env, char **envp);
-const char *env_find(Environment *env, const char *name);
+StatusCode env_copy(Environment *env, const char **envp);
+const char *env_find(const Environment *env, const char *name);

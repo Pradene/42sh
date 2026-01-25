@@ -37,4 +37,4 @@ typedef struct {
 } Tokens;
 
 void tokens_free(Tokens *tokens);
-void tokens_print(Tokens *tokens);
+void tokens_print(const Tokens *tokens);

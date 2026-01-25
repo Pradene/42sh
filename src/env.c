@@ -1,7 +1,7 @@
 #include "env.h"
 #include "vec.h"
 
-StatusCode env_copy(Environment *env, char **envp) {
+StatusCode env_copy(Environment *env, const char **envp) {
   for (size_t i = 0; envp[i]; ++i) {
     char *variable = strdup(envp[i]);
     if (!variable) {
@@ -20,7 +20,7 @@ void env_free(Environment *env) {
   vec_free(env);
 }
 
-const char *env_find(Environment *env, const char *name) {
+const char *env_find(const Environment *env, const char *name) {
   size_t name_length = strlen(name);
   for (size_t i = 0; i < vec_size(env); ++i) {
     char *var = vec_at(env, i);
