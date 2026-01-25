@@ -35,19 +35,17 @@ const char *token_type_cstr(const TokenType type) {
 }
 
 void tokens_free(Tokens *tokens) {
-  for (size_t i = 0; i < vec_size(tokens); ++i) {
-    Token token = vec_at(tokens, i);
-    if (token.s) {
-      free(token.s);
+  vec_foreach(Token, token, tokens) {
+    if (token->s) {
+      free(token->s);
     }
   }
   vec_free(tokens);
 }
 
 void tokens_print(const Tokens *tokens) {
-  for (size_t i = 0; i < vec_size(tokens); ++i) {
-    Token token = vec_at(tokens, i);
-    printf("%s: %s\n", token_type_cstr(token.type), token.s ? token.s : "");
+  vec_foreach(Token, token, tokens) {
+    printf("%s: %s\n", token_type_cstr(token->type), token->s ? token->s : "");
   }
 }
 

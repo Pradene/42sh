@@ -62,7 +62,7 @@ void stripping(AstNode *root) {
 
   case NODE_BRACE:
   case NODE_PAREN:
-    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
+    for (size_t i = 0; i < vec_size(&root->group.redirs); ++i) {
       Redir redir = vec_at(&root->command.redirs, i);
       char *original = redir.target;
       char *stripped = strip_quotes(original);

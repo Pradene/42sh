@@ -14,18 +14,17 @@ StatusCode env_copy(Environment *env, const char **envp) {
 }
 
 void env_free(Environment *env) {
-  for (size_t i = 0; i < vec_size(env); ++i) {
-    free(vec_at(env, i));
+  vec_foreach(char *,  var, env) {
+    free(*var);
   }
   vec_free(env);
 }
 
 const char *env_find(const Environment *env, const char *name) {
   size_t name_length = strlen(name);
-  for (size_t i = 0; i < vec_size(env); ++i) {
-    char *var = vec_at(env, i);
-    if (strncmp(var, name, name_length) == 0 && var[name_length] == '=') {
-      return var + name_length + 1;
+  vec_foreach(char *, var, env) {
+    if (strncmp(*var, name, name_length) == 0 && (*var)[name_length] == '=') {
+      return *var + name_length + 1;
     }
   }
   return NULL;
