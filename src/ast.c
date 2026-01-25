@@ -47,8 +47,7 @@ static void ast_print_redirs(Redirs *redirs, int depth) {
     return;
   }
 
-  for (size_t i = 0; i < redirs->size; ++i) {
-    Redir *redir = &redirs->data[i];
+  vec_foreach(Redir,  redir, redirs) {
     printf("%*s", (depth + 1) * 2, "");
 
     const char *type_str;
