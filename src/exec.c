@@ -2,6 +2,7 @@
 
 #include "ast.h"
 #include "env.h"
+#include "vec.h"
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -16,9 +17,11 @@ void execute_simple_command(AstNode *node, Environment *env) {
   if (pid < 0) {
     return; 
   } else if (pid == 0) {
+	vec_push(env, NULL);
+	vec_push(&node->command.args, NULL);
+	
     char **args = node->command.args.data;
     execve(args[0], args, env->data);
-    exit(EXIT_FAILURE);
   } else {
     int status;
     waitpid(pid, &status, 0);

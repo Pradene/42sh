@@ -5,4 +5,4 @@
 - hash table
 - built-ins (export, jobs, fg, bg, unset, set, exit, cd, alias, unalias, hash)
 - parse shell script (while, for, case, if, ...)
-
+- ${} to $``
