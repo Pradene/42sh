@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -64,6 +65,48 @@ static char *find_command_path(const char *cmd, Environment *env) {
   return result;
 }
 
+static void apply_redirs(Redirs *redirs) {
+  if (!redirs || !vec_size(redirs)) {
+    return;
+  }
+
+  vec_foreach(Redir, redir, redirs) {
+    int fd = -1;
+
+    switch (redir->type) {
+    case REDIRECT_IN:
+      fd = open(redir->target, O_RDONLY);
+      if (fd == -1) {
+        perror(redir->target);
+        exit(EXIT_FAILURE);
+      }
+      dup2(fd, STDIN_FILENO);
+      close(fd);
+      break;
+    case REDIRECT_OUT:
+      fd = open(redir->target, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+      if (fd == -1) {
+        perror(redir->target);
+        exit(EXIT_FAILURE);
+      }
+      dup2(fd, STDOUT_FILENO);
+      close(fd);
+      break;
+    case REDIRECT_APPEND:
+      fd = open(redir->target, O_WRONLY | O_CREAT | O_APPEND, 0644);
+      if (fd == -1) {
+        perror(redir->target);
+        exit(EXIT_FAILURE);
+      }
+      dup2(fd, STDOUT_FILENO);
+      close(fd);
+      break;
+    case REDIRECT_HEREDOC:
+      break;
+    }
+  }
+}
+
 void execute_simple_command(AstNode *node, Environment *env) {
   if (!node || node->type != NODE_COMMAND) {
     return;
@@ -81,6 +124,8 @@ void execute_simple_command(AstNode *node, Environment *env) {
     } else {
       env_set(env, "_", path);
     }
+
+    apply_redirs(&node->command.redirs);
 
     vec_push(env, NULL);
     vec_push(&node->command.args, NULL);
