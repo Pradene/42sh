@@ -3,7 +3,9 @@
 #include "sb.h"
 #include "vec.h"
 
-static char *expand(const char *s) {
+#include <ctype.h>
+
+static char *expand(const char *s, Environment *env) {
   StringBuffer sb = {0};
 
   if (!s || s[0] == '\0') {
@@ -14,6 +16,58 @@ static char *expand(const char *s) {
   while (s[i]) {
     if (s[i] == '$') {
       ++i;
+      if (s[i] == '{') {
+        ++i;
+        size_t depth = 1;
+        size_t start = i;
+        while (s[i]) {
+          if (s[i] == '{') {
+            ++depth;
+          } else if (s[i] == '}') {
+            --depth;
+          }
+
+          if (depth == 0) {
+            break;
+          } else {
+            ++i;
+          }
+        }
+
+        if (s[i] == '}') {
+          size_t v_length = i - start;
+          char *v_name = strndup(s + start, v_length);
+          if (v_name) {
+            const char *v_value = env_find(env, v_name);
+            if (v_value) {
+              sb_append(&sb, v_value);
+            }
+            free(v_name);
+          }
+          ++i;
+        } else {
+          sb_append_char(&sb, '$');
+          sb_append_char(&sb, '{');
+          sb_append(&sb, s + start);
+        }
+      } else if (isalnum(s[i]) || s[i] == '_') {
+        size_t start = i;
+        while (isalnum(s[i]) || s[i] == '_') {
+          ++i;
+        }
+
+        size_t v_length = i - start;
+        char *v_name = strndup(s + start, v_length);
+        if (v_name) {
+          const char *v_value = env_find(env, v_name);
+          if (v_value) {
+            sb_append(&sb, v_value);
+          }
+          free(v_name);
+        }
+      } else {
+        sb_append_char(&sb, '$');
+      }
     } else {
       sb_append_char(&sb, s[i]);
       ++i;
@@ -42,7 +96,7 @@ void expansion(AstNode *root, Environment *env) {
     for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
       Redir redir = vec_at(&root->command.redirs, i);
       char *original = redir.target;
-      char *expanded = expand(original);
+      char *expanded = expand(original, env);
 
       if (expanded) {
         free(original);
@@ -57,7 +111,7 @@ void expansion(AstNode *root, Environment *env) {
   case NODE_COMMAND:
     for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
       char *original = vec_at(&root->command.args, i);
-      char *expanded = expand(original);
+      char *expanded = expand(original, env);
 
       if (expanded) {
         free(original);
@@ -69,7 +123,7 @@ void expansion(AstNode *root, Environment *env) {
     for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
       Redir redir = vec_at(&root->command.redirs, i);
       char *original = redir.target;
-      char *expanded = expand(original);
+      char *expanded = expand(original, env);
 
       if (expanded) {
         free(original);

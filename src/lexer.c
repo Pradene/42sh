@@ -85,8 +85,7 @@ StatusCode next_token(char *s, size_t *i, Token *token) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
-        *token =
-            (Token){.s = NULL, .position = start, .type = operators[j].type};
+        *token = (Token){NULL, start, operators[j].type};
         return OK;
       }
     }
