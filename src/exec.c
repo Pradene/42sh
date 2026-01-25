@@ -5,8 +5,64 @@
 #include "vec.h"
 
 #include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+static bool is_executable(const char *path) {
+  struct stat st;
+  if (stat(path, &st) == 0) {
+    return (st.st_mode & S_IXUSR) != 0;
+  }
+  return false;
+}
+
+static char *find_command_path(const char *cmd, Environment *env) {
+  if (strchr(cmd, '/')) {
+    if (is_executable(cmd)) {
+      return strdup(cmd);
+    }
+    return NULL;
+  }
+
+  const char *env_path = env_find(env, "PATH");
+  if (!env_path) {
+    return NULL;
+  }
+
+  char *copy = strdup(env_path);
+  if (!copy) {
+    return NULL;
+  }
+
+  char *result = NULL;
+  char *save = NULL;
+  char *dir = strtok_r(copy, ":", &save);
+  
+  while (dir) {
+    size_t length = strlen(dir) + strlen(cmd) + 2;
+    char *path = malloc(length);
+    if (!path) {
+      break;
+    }
+
+    snprintf(path, length, "%s/%s", dir, cmd);
+    
+    if (is_executable(path)) {
+      result = path;
+      break;
+    }
+    
+    free(path);
+    dir = strtok_r(NULL, ":", &save);
+  }
+
+  free(copy);
+  return result;
+}
 
 void execute_simple_command(AstNode *node, Environment *env) {
   if (!node || node->type != NODE_COMMAND) {
@@ -21,8 +77,10 @@ void execute_simple_command(AstNode *node, Environment *env) {
 	vec_push(&node->command.args, NULL);
 
     char **args = node->command.args.data;
-	char *path = args[0];
+	char *path = find_command_path(args[0], env);
     execve(path, args, env->data);
+	
+	free(path);
 	exit(EXIT_FAILURE);
   } else {
     int status;
