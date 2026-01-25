@@ -2,12 +2,10 @@
 
 #include <string.h>
 
-// Free vector memory
 #define vec_free(v)                                                            \
   ((v)->data ? free((v)->data) : (void)0, (v)->data = NULL, (v)->size = 0,     \
    (v)->capacity = 0)
 
-// Reserve capacity (internal helper)
 #define vec_reserve(v, n)                                                      \
   ((n) > (v)->capacity ? ((v)->data = (typeof((v)->data))realloc(              \
                               (v)->data, (n) * sizeof(*(v)->data)))            \
@@ -15,35 +13,26 @@
                              : (void)0                                         \
                        : (void)0)
 
-// Push an element to the back
 #define vec_push(v, content)                                                   \
   ((v)->size >= (v)->capacity                                                  \
        ? vec_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2)          \
        : (void)0,                                                              \
    (v)->data[(v)->size++] = (content))
 
-// Pop an element from the back
 #define vec_pop(v) ((v)->size > 0 ? (v)->size-- : 0)
 
-// Get element at index
 #define vec_at(v, i) ((v)->data[i])
 
-// Get size
 #define vec_size(v) ((v)->size)
 
-// Get capacity
 #define vec_capacity(v) ((v)->capacity)
 
-// Clear the vector (keep capacity)
 #define vec_clear(v) ((v)->size = 0)
 
-// Get pointer to first element
 #define vec_begin(v) ((v)->data)
 
-// Get pointer to one past last element
 #define vec_end(v) ((v)->data + (v)->size)
 
-// Insert at index
 #define vec_insert(v, i, val)                                                  \
   do {                                                                         \
     if ((v)->size >= (v)->capacity) {                                          \
@@ -58,7 +47,6 @@
     (v)->size++;                                                               \
   } while (0)
 
-// Remove at index
 #define vec_remove(v, i)                                                       \
   do {                                                                         \
     if ((i) < (v)->size) {                                                     \
@@ -70,4 +58,4 @@
     }                                                                          \
   } while (0)
 
-  #define vec_foreach(Type, it, vec) for (Type *it = (vec)->data; it < (vec)->data + (vec)->size; ++it)
+#define vec_foreach(Type, it, vec) for (Type *it = (vec)->data; it < (vec)->data + (vec)->size; ++it)
