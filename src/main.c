@@ -26,6 +26,7 @@ AstNode *get_command() {
 
     status = lex(sb_as_cstr(&sb), &tokens);
     if (status != OK) {
+      sb_append_char(&sb, '\n');
       if (status == INCOMPLETE_INPUT) {
         line = readline("> ");
         if (!line) {
