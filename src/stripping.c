@@ -63,10 +63,13 @@ void stripping(AstNode *root) {
   case NODE_BRACE:
   case NODE_PAREN:
     vec_foreach(Redir, redir, &root->group.redirs) {
-      char *stripped = strip_quotes(redir->target);
+      if (redir->type == REDIRECT_HEREDOC) {
+        continue;
+      }
+      char *stripped = strip_quotes(redir->target_path);
       if (stripped) {
-        free(redir->target);
-        redir->target = stripped;
+        free(redir->target_path);
+        redir->target_path = stripped;
       }
     }
 
@@ -82,10 +85,13 @@ void stripping(AstNode *root) {
     }
 
     vec_foreach(Redir, redir, &root->command.redirs) {
-      char *stripped = strip_quotes(redir->target);
+      if (redir->type == REDIRECT_HEREDOC) {
+        continue;
+      }
+      char *stripped = strip_quotes(redir->target_path);
       if (stripped) {
-        free(redir->target);
-        redir->target = stripped;
+        free(redir->target_path);
+        redir->target_path = stripped;
       }
     }
 
