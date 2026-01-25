@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "env.h"
 #include "sb.h"
 #include "vec.h"
 
@@ -22,7 +23,8 @@ static char *expand(const char *s) {
   return sb_as_cstr(&sb);
 }
 
-void expansion(AstNode *root) {
+void expansion(AstNode *root, Environment *env) {
+  (void)env;
   if (!root) {
     return;
   }

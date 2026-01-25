@@ -1,5 +1,5 @@
 #include "ast.h"
-#include "error.h"
+#include "status.h"
 #include "token.h"
 #include "vec.h"
 
