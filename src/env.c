@@ -19,3 +19,14 @@ void env_free(Environment *env) {
   }
   vec_free(env);
 }
+
+const char *env_find(Environment *env, const char *name) {
+  size_t name_length = strlen(name);
+  for (size_t i = 0; i < vec_size(env); ++i) {
+    char *var = vec_at(env, i);
+    if (strncmp(var, name, name_length) == 0 && var[name_length] == '=') {
+      return var + name_length + 1;
+    }
+  }
+  return NULL;
+}

@@ -48,6 +48,7 @@ static void ast_print_redirs(Redirs *redirs, int depth) {
   if (!redirs || redirs->size == 0) {
     return;
   }
+
   for (size_t i = 0; i < redirs->size; ++i) {
     Redir *redir = &redirs->data[i];
     printf("%*s", (depth + 1) * 2, "");
@@ -78,6 +79,7 @@ static void ast_print_inner(AstNode *root, int depth) {
   if (!root) {
     return;
   }
+  
   printf("%*s", depth * 2, "");
   switch (root->type) {
   case NODE_COMMAND:
