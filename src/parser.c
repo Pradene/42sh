@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir);
-static StatusCode parse_command(const Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_pipeline(const Tokens *tokens, size_t *i, AstNode **root);
 static StatusCode parse_logical(const Tokens *tokens, size_t *i, AstNode **root);
@@ -53,7 +53,7 @@ static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
   return OK;
 }
 
-static StatusCode parse_command(const Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
     return MEM_ALLOCATION_FAILED;
@@ -112,7 +112,7 @@ static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root) {
     close = TOKEN_RBRACE;
     type = NODE_BRACE;
   } else {
-    return parse_command(tokens, i, root);
+    return parse_simple_command(tokens, i, root);
   }
 
   ++(*i);

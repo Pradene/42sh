@@ -9,7 +9,6 @@ typedef struct {
   size_t capacity;
 } StringBuffer;
 
-// Free vector memory
 #define sb_free(v)                                                             \
   ((v)->data ? free((v)->data) : (void)0, (v)->data = NULL, (v)->size = 0,     \
    (v)->capacity = 0)
@@ -25,7 +24,6 @@ typedef struct {
     }                                                                          \
   } while (0)
 
-// Push an element to the back
 #define sb_append_char(v, c)                                                   \
   do {                                                                         \
     if ((v)->size >= (v)->capacity) {                                          \
@@ -35,7 +33,6 @@ typedef struct {
     (v)->data[(v)->size] = '\0';                                               \
   } while (0)
 
-// Append a cstr to the back (concat)
 #define sb_append(v, cstr)                                                     \
   do {                                                                         \
     size_t len = strlen(cstr);                                                 \
@@ -47,19 +44,14 @@ typedef struct {
     (v)->data[(v)->size] = '\0';                                               \
   } while (0)
 
-// Pop an element from the back
 #define sb_pop(v) ((v)->size > 0 ? (v)->size-- : 0)
 
-// Get element at index
 #define sb_at(v, i) ((v)->data[i])
 
-// Get size
 #define sb_size(v) ((v)->size)
 
-// Get pointer to first element
 #define sb_as_cstr(v) ((v)->data)
 
-// Insert at index
 #define sb_insert(v, i, c)                                                     \
   do {                                                                         \
     if ((v)->size >= (v)->capacity) {                                          \
@@ -74,7 +66,6 @@ typedef struct {
     (v)->size++;                                                               \
   } while (0)
 
-// Remove at index
 #define sb_remove(v, i)                                                        \
   do {                                                                         \
     if ((i) < (v)->size) {                                                     \

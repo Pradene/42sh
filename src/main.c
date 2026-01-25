@@ -9,33 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void execute_command(AstNode *root, Environment *env) {
-  if (!root) {
-    return;
-  }
-
-  switch (root->type) {
-  case NODE_PIPE:
-  case NODE_AND:
-  case NODE_OR:
-  case NODE_BACKGROUND:
-  case NODE_SEMICOLON:
-    execute_command(root->operator.left, env);
-    execute_command(root->operator.right, env);
-    return;
-  case NODE_BRACE:
-  case NODE_PAREN:
-    expansion(root, env);
-    stripping(root);
-    execute_command(root->group.inner, env);
-    return;
-  case NODE_COMMAND:
-    expansion(root, env);
-    stripping(root);
-    return;
-  }
-}
-
 AstNode *get_command() {
   StringBuffer sb = {0};
   char *line = readline("$ ");

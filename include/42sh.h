@@ -12,3 +12,5 @@ void stripping(AstNode *root);
 
 StatusCode lex(const char *input, Tokens *tokens);
 StatusCode parse(const Tokens *tokens, AstNode **root);
+
+void execute_command(AstNode *root, Environment *env);
