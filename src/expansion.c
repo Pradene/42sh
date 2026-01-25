@@ -33,14 +33,10 @@ void expansion(AstNode *root) {
   case NODE_OR:
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    expansion(root->operator.left);
-    expansion(root->operator.right);
     return;
 
   case NODE_BRACE:
   case NODE_PAREN:
-    expansion(root->group.inner);
-
     for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
       Redir redir = vec_at(&root->command.redirs, i);
       char *original = redir.target;

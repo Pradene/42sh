@@ -52,6 +52,7 @@ static StatusCode parse_redir(Tokens *tokens, size_t *i, Redir *redir) {
 
   return OK;
 }
+
 static StatusCode parse_command(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
@@ -166,6 +167,7 @@ static StatusCode parse_group(Tokens *tokens, size_t *i, AstNode **root) {
   *root = node;
   return OK;
 }
+
 
 static StatusCode parse_pipeline(Tokens *tokens, size_t *i, AstNode **root) {
   AstNode *left = NULL;
