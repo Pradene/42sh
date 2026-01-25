@@ -93,11 +93,9 @@ void expansion(AstNode *root, const Environment *env) {
   case NODE_BRACE:
   case NODE_PAREN:
     vec_foreach(Redir, redir, &root->group.redirs) {
-      char *original = redir->target;
-      char *expanded = expand(original, env);
-
+      char *expanded = expand(redir->target, env);
       if (expanded) {
-        free(original);
+        free(redir->target);
         redir->target = expanded;
       }
     }
@@ -107,7 +105,6 @@ void expansion(AstNode *root, const Environment *env) {
   case NODE_COMMAND:
     vec_foreach(char *, arg, &root->command.args) {
       char *expanded = expand(*arg, env);
-
       if (expanded) {
         free(*arg);
         *arg = expanded;
@@ -115,11 +112,9 @@ void expansion(AstNode *root, const Environment *env) {
     }
 
     vec_foreach(Redir, redir, &root->command.redirs) {
-      char *original = redir->target;
-      char *expanded = expand(original, env);
-
+      char *expanded = expand(redir->target, env);
       if (expanded) {
-        free(original);
+        free(redir->target);
         redir->target = expanded;
       }
     }

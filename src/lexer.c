@@ -20,11 +20,11 @@ const char *token_type_cstr(const TokenType type) {
       [TOKEN_AND] = "AND",
       [TOKEN_OR] = "OR",
       [TOKEN_WORD] = "WORD",
-      [TOKEN_EOF] = "EOF",
       [TOKEN_REDIRECT_OUT] = "REDIRECT_OUT",
       [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
       [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
       [TOKEN_HEREDOC] = "HEREDOC",
+      [TOKEN_EOF] = "EOF",
   };
 
   if (type < sizeof(names) / sizeof(names[0]) && names[type]) {
