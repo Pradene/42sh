@@ -90,10 +90,11 @@ int main(int argc, char **argv, char **envp) {
     if (!root) {
       continue;
     }
+    
+    ast_print(root);
 
     execute_command(root, &env);
 
-    ast_print(root);
     ast_free(root);
   }
 
