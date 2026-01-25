@@ -62,43 +62,30 @@ void stripping(AstNode *root) {
 
   case NODE_BRACE:
   case NODE_PAREN:
-    for (size_t i = 0; i < vec_size(&root->group.redirs); ++i) {
-      Redir redir = vec_at(&root->command.redirs, i);
-      char *original = redir.target;
-      char *stripped = strip_quotes(original);
-
+    vec_foreach(Redir, redir, &root->group.redirs) {
+      char *stripped = strip_quotes(redir->target);
       if (stripped) {
-        free(original);
-        redir.target = stripped;
-        vec_remove(&root->command.redirs, i);
-        vec_insert(&root->command.redirs, i, redir);
+        free(redir->target);
+        redir->target = stripped;
       }
     }
 
     return;
 
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
-      char *original = vec_at(&root->command.args, i);
-      char *stripped = strip_quotes(original);
-
+    vec_foreach(char *, arg, &root->command.args) {
+      char *stripped = strip_quotes(*arg);
       if (stripped) {
-        free(original);
-        vec_remove(&root->command.args, i);
-        vec_insert(&root->command.args, i, stripped);
+        free(*arg);
+        *arg = stripped;
       }
     }
 
-    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
-      Redir redir = vec_at(&root->command.redirs, i);
-      char *original = redir.target;
-      char *stripped = strip_quotes(original);
-
+    vec_foreach(Redir, redir, &root->command.redirs) {
+      char *stripped = strip_quotes(redir->target);
       if (stripped) {
-        free(original);
-        redir.target = stripped;
-        vec_remove(&root->command.redirs, i);
-        vec_insert(&root->command.redirs, i, redir);
+        free(redir->target);
+        redir->target = stripped;
       }
     }
 

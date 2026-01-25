@@ -50,7 +50,7 @@ static char *find_command_path(const char *cmd, Environment *env) {
     }
 
     snprintf(path, length, "%s/%s", dir, cmd);
-    
+
     if (is_executable(path)) {
       result = path;
       break;
@@ -73,15 +73,22 @@ void execute_simple_command(AstNode *node, Environment *env) {
   if (pid < 0) {
     return;
   } else if (pid == 0) {
-	vec_push(env, NULL);
-	vec_push(&node->command.args, NULL);
-
     char **args = node->command.args.data;
-	char *path = find_command_path(args[0], env);
+    char *path = find_command_path(args[0], env);
+    if (!path) {
+      fprintf(stderr, "Command not found: %s\n", args[0]);
+      exit(EXIT_FAILURE);
+    } else {
+      env_set(env, "_", path);
+    }
+
+    vec_push(env, NULL);
+    vec_push(&node->command.args, NULL);
+
     execve(path, args, env->data);
-	
-	free(path);
-	exit(EXIT_FAILURE);
+
+    free(path);
+    exit(EXIT_FAILURE);
   } else {
     int status;
     waitpid(pid, &status, 0);
@@ -94,9 +101,21 @@ void execute_command(AstNode *root, Environment *env) {
   }
 
   switch (root->type) {
-  case NODE_PIPE:
   case NODE_AND:
+    execute_command(root->operator.left, env);
+    // Change to exit code of left command
+    if (true == true) {
+      execute_command(root->operator.right, env);
+    }
+    return;
   case NODE_OR:
+    execute_command(root->operator.left, env);
+    // Change to exit code of left command
+    if (false == false) {
+      execute_command(root->operator.right, env);
+    }
+    return;
+  case NODE_PIPE:
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
     execute_command(root->operator.left, env);

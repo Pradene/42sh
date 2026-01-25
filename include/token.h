@@ -17,11 +17,11 @@ typedef enum {
   TOKEN_AND,
   TOKEN_OR,
   TOKEN_WORD,
-  TOKEN_EOF,
   TOKEN_REDIRECT_OUT,
   TOKEN_REDIRECT_APPEND,
   TOKEN_REDIRECT_IN,
   TOKEN_HEREDOC,
+  TOKEN_EOF,
 } TokenType;
 
 typedef struct {
