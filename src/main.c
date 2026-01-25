@@ -1,5 +1,5 @@
 #include "42sh.h"
-#include "error.h"
+#include "status.h"
 #include "sb.h"
 
 #include <readline/history.h>
@@ -25,12 +25,12 @@ void execute_command(AstNode *root, Environment *env) {
     return;
   case NODE_BRACE:
   case NODE_PAREN:
-    expansion(root);
+    expansion(root, env);
     stripping(root);
     execute_command(root->group.inner, env);
     return;
   case NODE_COMMAND:
-    expansion(root);
+    expansion(root, env);
     stripping(root);
     return;
   }

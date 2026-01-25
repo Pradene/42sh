@@ -1,4 +1,4 @@
-#include "error.h"
+#include "status.h"
 #include "token.h"
 #include "vec.h"
 

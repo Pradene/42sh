@@ -1,5 +1,3 @@
-#include "42sh.h"
-
 #include <readline/readline.h>
 #include <unistd.h>
 
