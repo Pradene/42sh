@@ -78,20 +78,20 @@ int main(int argc, char **argv, char **envp) {
   struct sigaction sa;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
-
-  sa.sa_handler = sigint_handler;
-  sigaction(SIGINT, &sa, NULL);
-
   sa.sa_handler = SIG_IGN;
   sigaction(SIGQUIT, &sa, NULL);
 
   while (true) {
+    sa.sa_handler = sigint_handler;
+    sigaction(SIGINT, &sa, NULL);
+
     AstNode *root = get_command();
     if (!root) {
       continue;
     }
     
-    ast_print(root);
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGINT, &sa, NULL);
 
     execute_command(root, &env);
 
