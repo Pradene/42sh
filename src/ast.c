@@ -2,6 +2,7 @@
 #include "vec.h"
 
 #include <stdio.h>
+#include <unistd.h>
 
 void ast_free(AstNode *root) {
   if (!root) {
@@ -18,8 +19,12 @@ void ast_free(AstNode *root) {
     ast_free(root->operator.right);
     break;
   case NODE_COMMAND:
-    vec_foreach(Redir, redirect, &root->command.redirs) {
-      free(redirect->target);
+    vec_foreach(Redir, redir, &root->command.redirs) {
+      if (redir->type == REDIRECT_HEREDOC) {
+        close(redir->target_fd);
+      } else {
+        free(redir->target_path);
+      }
     }
     vec_free(&root->command.redirs);
     vec_foreach(char *, arg, &root->command.args) {
@@ -29,8 +34,12 @@ void ast_free(AstNode *root) {
     break;
   case NODE_PAREN:
   case NODE_BRACE:
-    vec_foreach(Redir, redirect, &root->group.redirs) {
-      free(redirect->target);
+    vec_foreach(Redir, redir, &root->group.redirs) {
+      if (redir->type == REDIRECT_HEREDOC) {
+        close(redir->target_fd);
+      } else {
+        free(redir->target_path);
+      }
     }
     vec_free(&root->group.redirs);
     ast_free(root->group.inner);
@@ -68,7 +77,7 @@ static void ast_print_redirs(Redirs *redirs, int depth) {
       type_str = "?";
     }
 
-    printf("REDIRECT %s %s\n", type_str, redir->target);
+    printf("REDIRECT %s %s\n", type_str, redir->target_path ? redir->target_path : "");
   }
 }
 

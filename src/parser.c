@@ -4,6 +4,9 @@
 #include "vec.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <readline/readline.h>
 
 static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir);
 static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode **root);
@@ -42,11 +45,38 @@ static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
     return UNEXPECTED_TOKEN;
   }
 
-  redir->type = type;
-  redir->target = strdup(vec_at(tokens, *i).s);
-  if (!redir->target) {
-    return MEM_ALLOCATION_FAILED;
+  if (type == REDIRECT_HEREDOC) {
+    char template[] = "/tmp/heredoc_XXXXXX";
+    int fd = mkstemp(template);
+    if (fd < 0) {
+      return HEREDOC_CREATION_FAILED;
+    }
+    
+    unlink(template);
+    
+    char *delimiter = vec_at(tokens, *i).s;
+    char *line;
+    while ((line = readline("> "))) {
+      if (strcmp(line, delimiter) == 0) {
+        free(line);
+        break;
+      }
+      write(fd, line, strlen(line));
+      write(fd, "\n", 1);
+      free(line);
+    }
+    
+    lseek(fd, 0, SEEK_SET);
+    redir->target_fd = fd;
+  } else {
+    char *path = strdup(vec_at(tokens, *i).s);
+    if (!path) {
+      return MEM_ALLOCATION_FAILED; 
+    }
+    redir->target_path = path;
   }
+
+  redir->type = type;
 
   ++(*i);
 
