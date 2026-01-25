@@ -14,12 +14,12 @@ static char *strip_quotes(const char *s) {
     return NULL;
   }
 
-  size_t out_idx = 0;
+  size_t i = 0;
   int in_single_quote = 0;
   int in_double_quote = 0;
 
-  for (size_t i = 0; i < length; ++i) {
-    char c = s[i];
+  for (size_t j = 0; j < length; ++j) {
+    char c = s[j];
 
     if (c == '\'' && !in_double_quote) {
       in_single_quote = !in_single_quote;
@@ -31,19 +31,19 @@ static char *strip_quotes(const char *s) {
       continue;
     }
 
-    if (c == '\\' && in_double_quote && i + 1 < length) {
-      char next = s[i + 1];
+    if (c == '\\' && in_double_quote && j + 1 < length) {
+      char next = s[j + 1];
       if (next == '"' || next == '\\') {
-        result[out_idx++] = next;
-        ++i;
+        result[i++] = next;
+        ++j;
         continue;
       }
     }
 
-    result[out_idx++] = c;
+    result[i++] = c;
   }
 
-  result[out_idx] = '\0';
+  result[i] = '\0';
   return result;
 }
 
@@ -58,14 +58,10 @@ void stripping(AstNode *root) {
   case NODE_OR:
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    stripping(root->operator.left);
-    stripping(root->operator.right);
     return;
 
   case NODE_BRACE:
   case NODE_PAREN:
-    stripping(root->group.inner);
-
     for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
       Redir redir = vec_at(&root->command.redirs, i);
       char *original = redir.target;
