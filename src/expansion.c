@@ -92,43 +92,35 @@ void expansion(AstNode *root, const Environment *env) {
 
   case NODE_BRACE:
   case NODE_PAREN:
-    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
-      Redir redir = vec_at(&root->command.redirs, i);
-      char *original = redir.target;
+    vec_foreach(Redir, redir, &root->group.redirs) {
+      char *original = redir->target;
       char *expanded = expand(original, env);
 
       if (expanded) {
         free(original);
-        redir.target = expanded;
-        vec_remove(&root->command.redirs, i);
-        vec_insert(&root->command.redirs, i, redir);
+        redir->target = expanded;
       }
     }
 
     return;
 
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
-      char *original = vec_at(&root->command.args, i);
-      char *expanded = expand(original, env);
+    vec_foreach(char *, arg, &root->command.args) {
+      char *expanded = expand(*arg, env);
 
       if (expanded) {
-        free(original);
-        vec_remove(&root->command.args, i);
-        vec_insert(&root->command.args, i, expanded);
+        free(*arg);
+        *arg = expanded;
       }
     }
 
-    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
-      Redir redir = vec_at(&root->command.redirs, i);
-      char *original = redir.target;
+    vec_foreach(Redir, redir, &root->command.redirs) {
+      char *original = redir->target;
       char *expanded = expand(original, env);
 
       if (expanded) {
         free(original);
-        redir.target = expanded;
-        vec_remove(&root->command.redirs, i);
-        vec_insert(&root->command.redirs, i, redir);
+        redir->target = expanded;
       }
     }
 

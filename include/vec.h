@@ -69,3 +69,5 @@
       --(v)->size;                                                             \
     }                                                                          \
   } while (0)
+
+  #define vec_foreach(Type, it, vec) for (Type *it = (vec)->data; it < (vec)->data + (vec)->size; ++it)

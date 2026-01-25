@@ -18,21 +18,19 @@ void ast_free(AstNode *root) {
     ast_free(root->operator.right);
     break;
   case NODE_COMMAND:
-    for (size_t i = 0; i < vec_size(&root->command.redirs); ++i) {
-      Redir redirect = vec_at(&root->command.redirs, i);
-      free(redirect.target);
+    vec_foreach(Redir, redirect, &root->command.redirs) {
+      free(redirect->target);
     }
     vec_free(&root->command.redirs);
-    for (size_t i = 0; i < vec_size(&root->command.args); ++i) {
-      free(vec_at(&root->command.args, i));
+    vec_foreach(char *, arg, &root->command.args) {
+      free(*arg);
     }
     vec_free(&root->command.args);
     break;
   case NODE_PAREN:
   case NODE_BRACE:
-    for (size_t i = 0; i < vec_size(&root->group.redirs); ++i) {
-      Redir redirect = vec_at(&root->group.redirs, i);
-      free(redirect.target);
+    vec_foreach(Redir, redirect, &root->group.redirs) {
+      free(redirect->target);
     }
     vec_free(&root->group.redirs);
     ast_free(root->group.inner);
