@@ -15,13 +15,15 @@ void execute_simple_command(AstNode *node, Environment *env) {
 
   pid_t pid = fork();
   if (pid < 0) {
-    return; 
+    return;
   } else if (pid == 0) {
 	vec_push(env, NULL);
 	vec_push(&node->command.args, NULL);
-	
+
     char **args = node->command.args.data;
-    execve(args[0], args, env->data);
+	char *path = args[0];
+    execve(path, args, env->data);
+	exit(EXIT_FAILURE);
   } else {
     int status;
     waitpid(pid, &status, 0);
