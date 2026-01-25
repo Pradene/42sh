@@ -13,6 +13,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+static int g_status = 0;
+
 static bool is_executable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
@@ -144,6 +146,13 @@ void execute_simple_command(AstNode *node, Environment *env) {
   } else {
     int status;
     waitpid(pid, &status, 0);
+
+    if (WIFEXITED(status)) {
+      g_status = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+      g_status = 128 + WTERMSIG(status);
+    }
+
     if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
       write(STDOUT_FILENO, "\n", 1);
     }
@@ -158,15 +167,13 @@ void execute_command(AstNode *root, Environment *env) {
   switch (root->type) {
   case NODE_AND:
     execute_command(root->operator.left, env);
-    // Change to exit code of left command
-    if (true == true) {
+    if (g_status == 0) {
       execute_command(root->operator.right, env);
     }
     return;
   case NODE_OR:
     execute_command(root->operator.left, env);
-    // Change to exit code of left command
-    if (false == false) {
+    if (g_status != 0) {
       execute_command(root->operator.right, env);
     }
     return;
