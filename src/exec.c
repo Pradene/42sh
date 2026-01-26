@@ -161,6 +161,51 @@ void execute_simple_command(AstNode *node, Environment *env) {
   }
 }
 
+void execute_pipe(AstNode *root, Environment *env) {
+  int pipefd[2];
+  if (pipe(pipefd) == -1) {
+    perror("pipe");
+    return;
+  }
+
+  pid_t pid_left = fork();
+  if (pid_left < 0) {
+    perror("fork");
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return;
+  } else if (pid_left == 0) {
+    close(pipefd[0]);
+    dup2(pipefd[1], STDOUT_FILENO);
+    close(pipefd[1]);
+
+    execute_command(root->operator.left, env);
+    exit(g_status);
+  }
+
+  pid_t pid_right = fork();
+  if (pid_right < 0) {
+    perror("fork");
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return;
+  } else if (pid_right == 0) {
+    close(pipefd[1]);
+    dup2(pipefd[0], STDIN_FILENO);
+    close(pipefd[0]);
+
+    execute_command(root->operator.right, env);
+    exit(g_status);
+  }
+
+  close(pipefd[0]);
+  close(pipefd[1]);
+
+  int status;
+  waitpid(pid_left, &status, 0);
+  waitpid(pid_right, &status, 0);
+}
+
 void execute_command(AstNode *root, Environment *env) {
   if (!root) {
     return;
@@ -179,7 +224,10 @@ void execute_command(AstNode *root, Environment *env) {
       execute_command(root->operator.right, env);
     }
     return;
-  case NODE_PIPE:
+  case NODE_PIPE: {
+    execute_pipe(root, env);
+    return;
+  }
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
     execute_command(root->operator.left, env);
