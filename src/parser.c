@@ -2,10 +2,12 @@
 #include "status.h"
 #include "token.h"
 #include "vec.h"
+#include "42sh.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <readline/readline.h>
 
 static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir);
@@ -53,10 +55,24 @@ static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
     }
     
     unlink(template);
-    
-    char *delimiter = vec_at(tokens, *i).s;
+
+    struct sigaction sa, old_sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = sigint_heredoc_handler;
+    sigaction(SIGINT, &sa, &old_sa);
+
+    rl_getc_function = fgetc;
+
     char *line;
-    while ((line = readline("> "))) {
+    char *delimiter = vec_at(tokens, *i).s;
+    while (true) {
+      line = readline("> ");
+      if (!line) {
+        close(fd);
+        sigaction(SIGINT, &old_sa, NULL);
+        return HEREDOC_CREATION_FAILED;
+      }
       if (strcmp(line, delimiter) == 0) {
         free(line);
         break;
@@ -65,7 +81,9 @@ static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
       write(fd, "\n", 1);
       free(line);
     }
-    
+
+    sigaction(SIGINT, &old_sa, NULL);
+
     lseek(fd, 0, SEEK_SET);
     redir->target_fd = fd;
   } else {
@@ -108,7 +126,7 @@ static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode 
       Redir redir = {0};
       StatusCode status = parse_redir(tokens, i, &redir);
       if (status != OK) {
-        free(node);
+        ast_free(node);
         return status;
       }
       vec_push(&node->command.redirs, redir);
@@ -185,7 +203,7 @@ static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root) {
       StatusCode status = parse_redir(tokens, i, &redir);
       if (status != OK) {
         ast_free(node);
-        return UNEXPECTED_TOKEN;
+        return status;
       }
 
       vec_push(&node->group.redirs, redir);
