@@ -9,3 +9,7 @@ void sigint_handler(int sig) {
   rl_replace_line("", 0);
   rl_redisplay();
 }
+
+void sigint_heredoc_handler(int sig) {
+  (void)sig;
+}

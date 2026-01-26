@@ -40,6 +40,8 @@ AstNode *get_command() {
       break;
     }
 
+    add_history(sb_as_cstr(&sb));
+
     status = parse(&tokens, &root);
     tokens_free(&tokens);
     if (status != OK) {
@@ -53,10 +55,9 @@ AstNode *get_command() {
         free(line);
         continue;
       }
+
       break;
     }
-
-    add_history(sb_as_cstr(&sb));
 
     sb_free(&sb);
     return root;
@@ -82,6 +83,7 @@ int main(int argc, char **argv, char **envp) {
   sigaction(SIGQUIT, &sa, NULL);
 
   while (true) {
+    rl_getc_function = rl_getc;
     sa.sa_handler = sigint_handler;
     sigaction(SIGINT, &sa, NULL);
 

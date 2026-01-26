@@ -6,6 +6,7 @@
 #include "env.h"
 
 void sigint_handler(int code);
+void sigint_heredoc_handler(int code);
 
 void expansion(AstNode *root, const Environment *env);
 void stripping(AstNode *root);
