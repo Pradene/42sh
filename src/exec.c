@@ -4,14 +4,14 @@
 #include "env.h"
 #include "vec.h"
 
-#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 static int g_status = 0;
 
@@ -44,7 +44,7 @@ static char *find_command_path(const char *cmd, Environment *env) {
   char *result = NULL;
   char *save = NULL;
   char *dir = strtok_r(copy, ":", &save);
-  
+
   while (dir) {
     size_t length = strlen(dir) + strlen(cmd) + 2;
     char *path = malloc(length);
@@ -58,7 +58,7 @@ static char *find_command_path(const char *cmd, Environment *env) {
       result = path;
       break;
     }
-    
+
     free(path);
     dir = strtok_r(NULL, ":", &save);
   }

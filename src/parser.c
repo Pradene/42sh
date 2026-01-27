@@ -47,57 +47,16 @@ static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
     return UNEXPECTED_TOKEN;
   }
 
-  if (type == REDIRECT_HEREDOC) {
-    char template[] = "/tmp/heredoc_XXXXXX";
-    int fd = mkstemp(template);
-    if (fd < 0) {
-      return HEREDOC_CREATION_FAILED;
-    }
-    
-    unlink(template);
-
-    struct sigaction sa, old_sa;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sa.sa_handler = sigint_heredoc_handler;
-    sigaction(SIGINT, &sa, &old_sa);
-
-    rl_getc_function = fgetc;
-
-    char *line;
-    char *delimiter = vec_at(tokens, *i).s;
-    while (true) {
-      line = readline("> ");
-      if (!line) {
-        close(fd);
-        sigaction(SIGINT, &old_sa, NULL);
-        return HEREDOC_CREATION_FAILED;
-      }
-      if (strcmp(line, delimiter) == 0) {
-        free(line);
-        break;
-      }
-      write(fd, line, strlen(line));
-      write(fd, "\n", 1);
-      free(line);
-    }
-
-    sigaction(SIGINT, &old_sa, NULL);
-
-    lseek(fd, 0, SEEK_SET);
-    redir->target_fd = fd;
-  } else {
-    char *path = strdup(vec_at(tokens, *i).s);
-    if (!path) {
-      return MEM_ALLOCATION_FAILED; 
-    }
-    redir->target_path = path;
+  char *path = strdup(vec_at(tokens, *i).s);
+  if (!path) {
+    return MEM_ALLOCATION_FAILED; 
   }
 
+  redir->target_path = path;
   redir->type = type;
 
   ++(*i);
-
+  
   return OK;
 }
 
@@ -122,7 +81,8 @@ static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode 
       vec_push(&node->command.args, s);
     } else if (token.type == TOKEN_REDIRECT_OUT ||
                token.type == TOKEN_REDIRECT_APPEND ||
-               token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_HEREDOC) {
+               token.type == TOKEN_REDIRECT_IN || 
+               token.type == TOKEN_HEREDOC) {
       Redir redir = {0};
       StatusCode status = parse_redir(tokens, i, &redir);
       if (status != OK) {

@@ -10,6 +10,4 @@ void sigint_handler(int sig) {
   rl_redisplay();
 }
 
-void sigint_heredoc_handler(int sig) {
-  (void)sig;
-}
+void sigint_heredoc_handler(int sig) { (void)sig; }

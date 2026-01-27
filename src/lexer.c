@@ -75,6 +75,10 @@ StatusCode next_token(const char *s, size_t *i, Token *token) {
   while (s[*i]) {
     size_t start = *i;
 
+    if (s[*i] == '\n') {
+      break;
+    }
+
     if (isspace(s[*i])) {
       ++(*i);
       continue;
