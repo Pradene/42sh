@@ -4,7 +4,7 @@ CFLAGS   = -Wall -Wextra -Werror -Iinclude -MMD -MP -g
 SRCS_DIR = src
 OBJS_DIR = obj
 
-SRCS      = $(wildcard $(SRCS_DIR)/*.c)
+SRCS      = $(shell find $(SRCS_DIR) -name '*.c')
 OBJS      = $(patsubst $(SRCS_DIR)/%.c,$(OBJS_DIR)/%.o,$(SRCS))
 DEPS      = $(OBJS:.o=.d)
 
@@ -16,7 +16,7 @@ $(NAME): $(OBJS)
 	@$(CC) $(CFLAGS) $(OBJS) -lreadline -o $(NAME)
 
 $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.c
-	@mkdir -p $(OBJS_DIR)
+	@mkdir -p $(@D)
 	@echo "\033[1;36m[CC]\033[0m $<"
 	@$(CC) $(CFLAGS) -c $< -o $@
 

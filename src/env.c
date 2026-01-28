@@ -52,3 +52,9 @@ StatusCode env_set(Environment *env, const char *name, const char *value) {
   vec_push(env, variable);
   return OK;
 }
+
+void env_print(const Environment *env) {
+  vec_foreach(char *, var, env) {
+    printf("%s\n", *var);
+  }
+}
