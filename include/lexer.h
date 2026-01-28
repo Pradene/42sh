@@ -1,7 +1,14 @@
 #pragma once
 
+#include "status.h"
+
 #include <stdbool.h>
 #include <stdlib.h>
+
+typedef struct {
+  const char *input;
+  size_t position;
+} LexState;
 
 typedef enum {
   TOKEN_LPAREN,
@@ -21,6 +28,7 @@ typedef enum {
   TOKEN_REDIRECT_APPEND,
   TOKEN_REDIRECT_IN,
   TOKEN_HEREDOC,
+  TOKEN_NEWLINE,
   TOKEN_EOF,
 } TokenType;
 
@@ -30,11 +38,4 @@ typedef struct {
   TokenType type;
 } Token;
 
-typedef struct {
-  Token *data;
-  size_t size;
-  size_t capacity;
-} Tokens;
-
-void tokens_free(Tokens *tokens);
-void tokens_print(const Tokens *tokens);
+StatusCode next_token(LexState *state, Token *token);

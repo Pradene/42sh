@@ -1,28 +1,70 @@
+#include "parser.h"
 #include "ast.h"
+#include "lexer.h"
 #include "status.h"
-#include "token.h"
 #include "vec.h"
-#include "42sh.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <readline/readline.h>
+static StatusCode parse_redir(ParserState *state, Redir *redir);
+static StatusCode parse_simple_command(ParserState *state, AstNode **root);
+static StatusCode parse_group(ParserState *state, AstNode **root);
+static StatusCode parse_pipeline(ParserState *state, AstNode **root);
+static StatusCode parse_logical(ParserState *state, AstNode **root);
+static StatusCode parse_sequence(ParserState *state, AstNode **root);
 
-static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir);
-static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_pipeline(const Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_logical(const Tokens *tokens, size_t *i, AstNode **root);
-static StatusCode parse_sequence(const Tokens *tokens, size_t *i, AstNode **root);
+static StatusCode parser_peek(ParserState *state, Token *token) {
+  if (!state->token_ready) {
+    StatusCode status = next_token(&state->lex_state, &state->current_token);
+    if (status != OK) {
+      return status;
+    }
+    state->token_ready = true;
+  }
+  *token = state->current_token;
+  return OK;
+}
 
-static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
-  if (*i >= vec_size(tokens)) {
+static StatusCode parser_advance(ParserState *state) {
+  if (!state->token_ready) {
+    StatusCode status = next_token(&state->lex_state, &state->current_token);
+    if (status != OK) {
+      return status;
+    }
+    state->token_ready = true;
+    return OK;
+  }
+
+  state->token_ready = false;
+  return OK;
+}
+
+static bool parser_match(ParserState *state, TokenType type) {
+  Token token;
+  StatusCode status = parser_peek(state, &token);
+  if (status != OK) {
+    return false;
+  }
+  return token.type == type;
+}
+
+static bool is_redirect_token(ParserState *state) {
+  return parser_match(state, TOKEN_REDIRECT_IN) ||
+         parser_match(state, TOKEN_REDIRECT_OUT) ||
+         parser_match(state, TOKEN_REDIRECT_APPEND) ||
+         parser_match(state, TOKEN_HEREDOC);
+}
+
+static StatusCode parse_redir(ParserState *state, Redir *redir) {
+  if (!is_redirect_token(state)) {
     return UNEXPECTED_TOKEN;
   }
 
-  Token token = vec_at(tokens, *i);
+  Token token;
+  StatusCode status;
+
+  status = parser_peek(state, &token);
+  if (status != OK) {
+    return status;
+  }
   RedirType type;
   switch (token.type) {
   case TOKEN_REDIRECT_IN:
@@ -41,26 +83,31 @@ static StatusCode parse_redir(const Tokens *tokens, size_t *i, Redir *redir) {
     return UNEXPECTED_TOKEN;
   }
 
-  ++(*i);
+  parser_advance(state);
 
-  if (*i >= vec_size(tokens) || vec_at(tokens, *i).type != TOKEN_WORD) {
+  if (!parser_match(state, TOKEN_WORD)) {
     return UNEXPECTED_TOKEN;
   }
 
-  char *path = strdup(vec_at(tokens, *i).s);
+  status = parser_peek(state, &token);
+  if (status != OK) {
+    return status;
+  }
+
+  char *path = strdup(token.s);
   if (!path) {
-    return MEM_ALLOCATION_FAILED; 
+    return MEM_ALLOCATION_FAILED;
   }
 
   redir->target_path = path;
   redir->type = type;
 
-  ++(*i);
-  
+  parser_advance(state);
+
   return OK;
 }
 
-static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
     return MEM_ALLOCATION_FAILED;
@@ -68,23 +115,32 @@ static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode 
 
   node->type = NODE_COMMAND;
   node->command = (Command){0};
-  while (*i < vec_size(tokens)) {
-    Token token = vec_at(tokens, *i);
 
-    if (token.type == TOKEN_WORD) {
-      ++(*i);
+  while (true) {
+    Token token;
+    StatusCode status = parser_peek(state, &token);
+    if (status != OK && status != UNEXPECTED_TOKEN) {
+      free(node);
+      return status;
+    }
+
+    if (parser_match(state, TOKEN_WORD)) {
+      Token token;
+      StatusCode status = parser_peek(state, &token);
+      if (status != OK) {
+        free(node);
+        return status;
+      }
       char *s = strdup(token.s);
       if (!s) {
         free(node);
         return MEM_ALLOCATION_FAILED;
       }
       vec_push(&node->command.args, s);
-    } else if (token.type == TOKEN_REDIRECT_OUT ||
-               token.type == TOKEN_REDIRECT_APPEND ||
-               token.type == TOKEN_REDIRECT_IN || 
-               token.type == TOKEN_HEREDOC) {
+      parser_advance(state);
+    } else if (is_redirect_token(state)) {
       Redir redir = {0};
-      StatusCode status = parse_redir(tokens, i, &redir);
+      StatusCode status = parse_redir(state, &redir);
       if (status != OK) {
         ast_free(node);
         return status;
@@ -95,8 +151,7 @@ static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode 
     }
   }
 
-  if (vec_size(&node->command.args) != 0 ||
-      vec_size(&node->command.redirs) != 0) {
+  if (vec_size(&node->command.args) || vec_size(&node->command.redirs)) {
     *root = node;
     return OK;
   } else {
@@ -105,46 +160,37 @@ static StatusCode parse_simple_command(const Tokens *tokens, size_t *i, AstNode 
   }
 }
 
-static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_group(ParserState *state, AstNode **root) {
   TokenType close;
   AstNodeType type;
 
-  if (*i >= vec_size(tokens)) {
-    return UNEXPECTED_TOKEN;
-  }
-
-  if (vec_at(tokens, *i).type == TOKEN_LPAREN) {
+  if (parser_match(state, TOKEN_LPAREN)) {
     close = TOKEN_RPAREN;
     type = NODE_PAREN;
-  } else if (vec_at(tokens, *i).type == TOKEN_LBRACE) {
+  } else if (parser_match(state, TOKEN_LBRACE)) {
     close = TOKEN_RBRACE;
     type = NODE_BRACE;
   } else {
-    return parse_simple_command(tokens, i, root);
+    return parse_simple_command(state, root);
   }
 
-  ++(*i);
+  parser_advance(state);
 
-  if (*i >= vec_size(tokens)) {
+  if (parser_match(state, TOKEN_EOF)) {
     return INCOMPLETE_INPUT;
   }
 
   AstNode *inner = NULL;
-  StatusCode status = parse_sequence(tokens, i, &inner);
+  StatusCode status = parse_sequence(state, &inner);
   if (status != OK) {
     return status;
   }
 
-  if (*i >= vec_size(tokens)) {
+  if (!parser_match(state, close)) {
     ast_free(inner);
-    return INCOMPLETE_INPUT;
+    return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT : UNEXPECTED_TOKEN;
   }
-
-  if (vec_at(tokens, *i).type != close) {
-    ast_free(inner);
-    return UNEXPECTED_TOKEN;
-  }
-  ++(*i);
+  parser_advance(state);
 
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
@@ -155,47 +201,36 @@ static StatusCode parse_group(const Tokens *tokens, size_t *i, AstNode **root) {
   node->group.inner = inner;
   node->group.redirs = (Redirs){0};
 
-  while (*i < vec_size(tokens)) {
-    Token token = vec_at(tokens, *i);
-    if (token.type == TOKEN_REDIRECT_IN || token.type == TOKEN_REDIRECT_OUT ||
-        token.type == TOKEN_REDIRECT_APPEND || token.type == TOKEN_HEREDOC) {
-      Redir redir = {0};
-      StatusCode status = parse_redir(tokens, i, &redir);
-      if (status != OK) {
-        ast_free(node);
-        return status;
-      }
-
-      vec_push(&node->group.redirs, redir);
-    } else {
-      break;
+  while (is_redirect_token(state)) {
+    Redir redir = {0};
+    StatusCode status = parse_redir(state, &redir);
+    if (status != OK) {
+      ast_free(node);
+      return status;
     }
+    vec_push(&node->group.redirs, redir);
   }
 
   *root = node;
   return OK;
 }
 
-
-static StatusCode parse_pipeline(const Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_pipeline(ParserState *state, AstNode **root) {
   AstNode *left = NULL;
-  StatusCode status = parse_group(tokens, i, &left);
+  StatusCode status = parse_group(state, &left);
   if (status != OK) {
     return status;
   }
 
-  while (*i < vec_size(tokens) && vec_at(tokens, *i).type == TOKEN_PIPE) {
-    ++(*i);
+  while (parser_match(state, TOKEN_PIPE)) {
+    parser_advance(state);
 
     AstNode *right = NULL;
-    status = parse_group(tokens, i, &right);
+    status = parse_group(state, &right);
     if (status != OK) {
       ast_free(left);
-      if (*i >= vec_size(tokens)) {
-        return INCOMPLETE_INPUT;
-      } else {
-        return UNEXPECTED_TOKEN;
-      }
+      return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT
+                                            : UNEXPECTED_TOKEN;
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
@@ -215,85 +250,86 @@ static StatusCode parse_pipeline(const Tokens *tokens, size_t *i, AstNode **root
   return OK;
 }
 
-static StatusCode parse_logical(const Tokens *tokens, size_t *i, AstNode **root) {
+static StatusCode parse_logical(ParserState *state, AstNode **root) {
   AstNode *left = NULL;
-  StatusCode status = parse_pipeline(tokens, i, &left);
+  StatusCode status = parse_pipeline(state, &left);
   if (status != OK) {
     return status;
   }
 
-  while (*i < vec_size(tokens)) {
-    Token token = vec_at(tokens, *i);
-
-    AstNodeType type;
-    if (token.type == TOKEN_AND) {
-      type = NODE_AND;
-    } else if (token.type == TOKEN_OR) {
-      type = NODE_OR;
-    } else {
-      break;
-    }
-
-    ++(*i);
-
-    AstNode *right = NULL;
-    status = parse_pipeline(tokens, i, &right);
+  while (parser_match(state, TOKEN_AND) || parser_match(state, TOKEN_OR)) {
+    Token op_token;
+    StatusCode status = parser_peek(state, &op_token);
     if (status != OK) {
       ast_free(left);
-      if (*i >= vec_size(tokens)) {
-        return INCOMPLETE_INPUT;
-      } else {
-        return UNEXPECTED_TOKEN;
-      }
+      return status;
     }
 
-    AstNode *node = (AstNode *)malloc(sizeof(AstNode));
-    if (!node) {
-      ast_free(left);
-      ast_free(right);
-      return MEM_ALLOCATION_FAILED;
-    }
+    AstNodeType type = (op_token.type == TOKEN_AND) ? NODE_AND : NODE_OR;
 
-    node->type = type;
-    node->operator.left = left;
-    node->operator.right = right;
-    left = node;
-  }
-
-  *root = left;
-  return OK;
-}
-
-static StatusCode parse_sequence(const Tokens *tokens, size_t *i, AstNode **root) {
-  AstNode *left = NULL;
-  StatusCode status = parse_logical(tokens, i, &left);
-  if (status != OK) {
-    return status;
-  }
-
-  while (*i < vec_size(tokens)) {
-    Token token = vec_at(tokens, *i);
-
-    AstNodeType type;
-    if (token.type == TOKEN_OPERAND) {
-      type = NODE_BACKGROUND;
-    } else if (token.type == TOKEN_SEMICOLON) {
-      type = NODE_SEMICOLON;
-    } else {
-      break;
-    }
-
-    ++(*i);
+    parser_advance(state);
 
     AstNode *right = NULL;
-    if (*i < vec_size(tokens)) {
-      Token next = vec_at(tokens, *i);
-      if (next.type != TOKEN_RPAREN && next.type != TOKEN_RBRACE) {
-        status = parse_logical(tokens, i, &right);
-        if (status != OK) {
-          ast_free(left);
-          return status;
-        }
+    status = parse_pipeline(state, &right);
+    if (status != OK) {
+      ast_free(left);
+      return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT
+                                            : UNEXPECTED_TOKEN;
+    }
+
+    AstNode *node = (AstNode *)malloc(sizeof(AstNode));
+    if (!node) {
+      ast_free(left);
+      ast_free(right);
+      return MEM_ALLOCATION_FAILED;
+    }
+
+    node->type = type;
+    node->operator.left = left;
+    node->operator.right = right;
+    left = node;
+  }
+
+  *root = left;
+  return OK;
+}
+
+static StatusCode parse_sequence(ParserState *state, AstNode **root) {
+  AstNode *left = NULL;
+  StatusCode status = parse_logical(state, &left);
+  if (status != OK) {
+    return status;
+  }
+
+  while (parser_match(state, TOKEN_OPERAND) ||
+         parser_match(state, TOKEN_SEMICOLON) ||
+         parser_match(state, TOKEN_NEWLINE)) {
+    Token sep_token;
+    StatusCode status = parser_peek(state, &sep_token);
+    if (status != OK) {
+      ast_free(left);
+      return status;
+    }
+
+    AstNodeType type;
+    if (sep_token.type == TOKEN_OPERAND) {
+      type = NODE_BACKGROUND;
+    } else if (sep_token.type == TOKEN_SEMICOLON) {
+      type = NODE_SEMICOLON;
+    } else {
+      *root = left;
+      return OK;
+    }
+
+    parser_advance(state);
+
+    AstNode *right = NULL;
+    if (!parser_match(state, TOKEN_RPAREN) && !parser_match(state, TOKEN_NEWLINE) &&
+        !parser_match(state, TOKEN_RBRACE) && !parser_match(state, TOKEN_EOF)) {
+      status = parse_logical(state, &right);
+      if (status != OK) {
+        ast_free(left);
+        return status;
       }
     }
 
@@ -314,15 +350,32 @@ static StatusCode parse_sequence(const Tokens *tokens, size_t *i, AstNode **root
   return OK;
 }
 
-StatusCode parse(const Tokens *tokens, AstNode **root) {
-  size_t i = 0;
+StatusCode parse(const char *input, AstNode **root) {
+  if (!input) {
+    return UNEXPECTED_TOKEN;
+  }
+
+  ParserState state = {
+    .lex_state = {
+      .input = input,
+      .position = 0,
+    },
+    .current_token = {0},
+    .token_ready = false,
+  };
+
   AstNode *node = NULL;
-  StatusCode status = parse_sequence(tokens, &i, &node);
+  StatusCode status = parse_sequence(&state, &node);
   if (status != OK) {
     return status;
   }
 
-  if (i < vec_size(tokens)) {
+  if (parser_match(&state, TOKEN_NEWLINE)) {
+    *root = node;
+    return OK;
+  }
+
+  if (!parser_match(&state, TOKEN_EOF)) {
     ast_free(node);
     return UNEXPECTED_TOKEN;
   }

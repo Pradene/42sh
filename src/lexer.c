@@ -1,11 +1,12 @@
 #include "status.h"
-#include "token.h"
+#include "lexer.h"
 #include "vec.h"
 
 #include <ctype.h>
+#include <string.h>
 #include <stdio.h>
 
-const char *token_type_cstr(const TokenType type) {
+const char *tokentype_str(const TokenType type) {
   static const char *names[] = {
       [TOKEN_LPAREN] = "LPAREN",
       [TOKEN_RPAREN] = "RPAREN",
@@ -24,6 +25,7 @@ const char *token_type_cstr(const TokenType type) {
       [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
       [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
       [TOKEN_HEREDOC] = "HEREDOC",
+      [TOKEN_NEWLINE] = "NEWLINE",
       [TOKEN_EOF] = "EOF",
   };
 
@@ -34,22 +36,7 @@ const char *token_type_cstr(const TokenType type) {
   return "UNKNOWN";
 }
 
-void tokens_free(Tokens *tokens) {
-  vec_foreach(Token, token, tokens) {
-    if (token->s) {
-      free(token->s);
-    }
-  }
-  vec_free(tokens);
-}
-
-void tokens_print(const Tokens *tokens) {
-  vec_foreach(Token, token, tokens) {
-    printf("%s: %s\n", token_type_cstr(token->type), token->s ? token->s : "");
-  }
-}
-
-StatusCode next_token(const char *s, size_t *i, Token *token) {
+StatusCode next_token(LexState *state, Token *token) {
   static const struct {
     const char *s;
     size_t length;
@@ -70,19 +57,14 @@ StatusCode next_token(const char *s, size_t *i, Token *token) {
                    {"{", 1, TOKEN_LBRACE},
                    {"}", 1, TOKEN_RBRACE},
                    {"&", 1, TOKEN_OPERAND},
+                   {"\n", 1, TOKEN_NEWLINE},
                    {NULL, 0, 0}};
 
+  const char *s = state->input;
+  size_t *i = &state->position;
+  
   while (s[*i]) {
     size_t start = *i;
-
-    if (s[*i] == '\n') {
-      break;
-    }
-
-    if (isspace(s[*i])) {
-      ++(*i);
-      continue;
-    }
 
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
@@ -90,6 +72,11 @@ StatusCode next_token(const char *s, size_t *i, Token *token) {
         *token = (Token){NULL, start, operators[j].type};
         return OK;
       }
+    }
+
+    if (isspace(s[*i])) {
+      ++(*i);
+      continue;
     }
 
     while (s[*i]) {
@@ -152,26 +139,5 @@ StatusCode next_token(const char *s, size_t *i, Token *token) {
   }
 
   *token = (Token){.s = NULL, .position = *i, .type = TOKEN_EOF};
-  return OK;
-}
-
-StatusCode lex(const char *input, Tokens *tokens) {
-  *tokens = (Tokens){0};
-  size_t position = 0;
-
-  while (true) {
-    Token token;
-    StatusCode err = next_token(input, &position, &token);
-    if (err != OK) {
-      tokens_free(tokens);
-      return err;
-    }
-
-    if (token.type == TOKEN_EOF) {
-      break;
-    }
-    vec_push(tokens, token);
-  }
-
   return OK;
 }

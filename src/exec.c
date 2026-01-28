@@ -3,6 +3,7 @@
 #include "ast.h"
 #include "env.h"
 #include "vec.h"
+#include "builtin.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -23,7 +24,7 @@ static bool is_executable(const char *path) {
   return false;
 }
 
-static char *find_command_path(const char *cmd, Environment *env) {
+char *find_command_path(const char *cmd, Environment *env) {
   if (strchr(cmd, '/')) {
     if (is_executable(cmd)) {
       return strdup(cmd);
@@ -113,6 +114,11 @@ static void apply_redirs(Redirs *redirs) {
 
 void execute_simple_command(AstNode *node, Environment *env) {
   if (!node || node->type != NODE_COMMAND) {
+    return;
+  }
+
+  if (is_builtin(node->command.args.data[0])) {
+    exec_builtin(node, env);
     return;
   }
 
@@ -206,6 +212,39 @@ void execute_pipe(AstNode *root, Environment *env) {
   waitpid(pid_right, &status, 0);
 }
 
+void execute_subshell(AstNode *node, Environment *env) {
+  pid_t pid = fork();
+
+  if (pid < 0) {
+    return;
+  } else if (pid == 0) {
+    struct sigaction sa;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = SIG_DFL;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGQUIT, &sa, NULL);
+
+    apply_redirs(&node->group.redirs);
+
+    execute_command(node->group.inner, env);
+    exit(g_status);
+  } else {
+    int status;
+    waitpid(pid, &status, 0);
+
+    if (WIFEXITED(status)) {
+      g_status = WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+      g_status = 128 + WTERMSIG(status);
+    }
+
+    if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
+      write(STDOUT_FILENO, "\n", 1);
+    }
+  }
+}
+
 void execute_command(AstNode *root, Environment *env) {
   if (!root) {
     return;
@@ -234,10 +273,14 @@ void execute_command(AstNode *root, Environment *env) {
     execute_command(root->operator.right, env);
     return;
   case NODE_BRACE:
-  case NODE_PAREN:
     expansion(root, env);
     stripping(root);
     execute_command(root->group.inner, env);
+    return;
+  case NODE_PAREN:
+    expansion(root, env);
+    stripping(root);
+    execute_subshell(root, env);
     return;
   case NODE_COMMAND:
     expansion(root, env);
