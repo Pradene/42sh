@@ -75,9 +75,11 @@ void builtin_echo(AstNode *node, Environment *env) {
 
   for (size_t i = index; i < argc; ++i) {
     char *output = NULL;
-    
+
     if (interpret) {
-      output = interpret_escapes(args[i]);
+      output = interpret_escapes(output);
+    } else {
+      output = strdup(args[i]);
     }
     
     write(STDOUT_FILENO, output, strlen(output));

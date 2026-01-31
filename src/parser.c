@@ -56,14 +56,14 @@ static bool is_redirect_token(ParserState *state) {
 }
 
 static bool is_valid_fd(const char *s, int *fd) {
-  char *endptr;
-  long val = strtol(s, &endptr, 10);
+  char *end;
+  long value = strtol(s, &end, 10);
 
-  if (*endptr != '\0' || val < 0 || val > 255) {
+  if (*end != '\0') {
     return false;
   }
 
-  *fd = (int)val;
+  *fd = (int)value;
   return true;
 }
 

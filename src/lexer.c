@@ -154,8 +154,8 @@ StatusCode next_token(LexState *state, Token *token) {
       }
     }
 
-    *token =
-        (Token){.s = sb_as_cstr(&sb), .position = start, .type = TOKEN_WORD};
+    char *word = sb_as_cstr(&sb);
+    *token = (Token){.s = word, .position = start, .type = TOKEN_WORD};
     return OK;
   }
 

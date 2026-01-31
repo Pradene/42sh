@@ -25,7 +25,7 @@ bool strendswith(const char *s, const char *suffix) {
   if (suffix_len > s_len) {
     return false;
   }
-  
+
   return strcmp(s + s_len - suffix_len, suffix) == 0;
 }
 
