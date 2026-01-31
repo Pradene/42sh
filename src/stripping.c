@@ -85,7 +85,8 @@ void stripping(AstNode *root) {
     }
 
     vec_foreach(Redir, redir, &root->command.redirs) {
-      if (redir->type == REDIRECT_HEREDOC) {
+      if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD ||
+          redir->type == REDIRECT_IN_FD) {
         continue;
       }
       char *stripped = strip_quotes(redir->target_path);

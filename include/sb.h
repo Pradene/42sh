@@ -27,8 +27,8 @@ typedef struct {
 
 #define sb_append_char(v, c)                                                   \
   do {                                                                         \
-    if ((v)->size >= (v)->capacity) {                                          \
-      sb_reserve(v, ((v)->capacity == 0) ? 8 : (v)->capacity * 2);             \
+    if ((v)->size + 1 >= (v)->capacity) {                                      \
+      sb_reserve(v, ((v)->capacity == 0) ? 16 : (v)->capacity * 2);            \
     }                                                                          \
     (v)->data[(v)->size++] = (c);                                              \
     (v)->data[(v)->size] = '\0';                                               \

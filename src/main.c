@@ -12,9 +12,6 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include <readline/readline.h>
-#include <readline/history.h>
-
 bool is_interactive = false;
 
 bool strendswith(const char *s, const char *suffix) {
@@ -43,7 +40,7 @@ AstNode *get_command() {
   free(line);
 
   while (true) {
-    if (strendswith(sb_as_cstr(&sb), "\\\n")) {
+    if (strendswith(sb_as_cstr(&sb), "\\")) {
       line = readline("> ");
       if (!line) {
         sb_free(&sb);
