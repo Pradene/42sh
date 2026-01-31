@@ -1,11 +1,10 @@
-#include "status.h"
 #include "lexer.h"
-#include "vec.h"
 #include "sb.h"
+#include "status.h"
 
 #include <ctype.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 const char *tokentype_str(const TokenType type) {
   static const char *names[] = {
@@ -26,6 +25,8 @@ const char *tokentype_str(const TokenType type) {
       [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
       [TOKEN_REDIRECT_IN] = "REDIRECT_IN",
       [TOKEN_HEREDOC] = "HEREDOC",
+      [TOKEN_REDIRECT_IN_FD] = "REDIRECT_IN_FD",
+      [TOKEN_REDIRECT_OUT_FD] = "REDIRECT_OUT_FD",
       [TOKEN_NEWLINE] = "NEWLINE",
       [TOKEN_EOF] = "EOF",
   };
@@ -44,6 +45,8 @@ StatusCode next_token(LexState *state, Token *token) {
     TokenType type;
   } operators[] = {{">>", 2, TOKEN_REDIRECT_APPEND},
                    {"<<", 2, TOKEN_HEREDOC},
+                   {">&", 2, TOKEN_REDIRECT_OUT_FD},
+                   {"<&", 2, TOKEN_REDIRECT_IN_FD},
                    {"&&", 2, TOKEN_AND},
                    {"||", 2, TOKEN_OR},
                    {";;", 2, TOKEN_DBL_SEMICOLON},
@@ -63,10 +66,10 @@ StatusCode next_token(LexState *state, Token *token) {
 
   const char *s = state->input;
   size_t *i = &state->position;
-  
+
   while (s[*i]) {
     size_t start = *i;
-    
+
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
@@ -74,12 +77,12 @@ StatusCode next_token(LexState *state, Token *token) {
         return OK;
       }
     }
-    
+
     if (isspace(s[*i])) {
       ++(*i);
       continue;
     }
-    
+
     StringBuffer sb = {0};
     while (s[*i]) {
       if (isspace(s[*i]) || strchr("|&;[](){}<>", s[*i])) {
@@ -151,7 +154,8 @@ StatusCode next_token(LexState *state, Token *token) {
       }
     }
 
-    *token = (Token){.s = sb_as_cstr(&sb), .position = start, .type = TOKEN_WORD};
+    *token =
+        (Token){.s = sb_as_cstr(&sb), .position = start, .type = TOKEN_WORD};
     return OK;
   }
 

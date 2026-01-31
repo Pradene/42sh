@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 typedef enum AstNodeType {
   NODE_COMMAND,
@@ -19,6 +19,8 @@ typedef enum RedirType {
   REDIRECT_OUT,
   REDIRECT_APPEND,
   REDIRECT_HEREDOC,
+  REDIRECT_IN_FD,
+  REDIRECT_OUT_FD,
 } RedirType;
 
 typedef struct Redir {

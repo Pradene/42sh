@@ -1,9 +1,9 @@
 #include "42sh.h"
 
 #include "ast.h"
+#include "builtin.h"
 #include "env.h"
 #include "vec.h"
-#include "builtin.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -107,6 +107,18 @@ static void apply_redirs(Redirs *redirs) {
       }
       dup2(fd, STDOUT_FILENO);
       close(fd);
+      break;
+    case REDIRECT_OUT_FD:
+      if (dup2(redir->target_fd, STDOUT_FILENO) == -1) {
+        perror("dup2");
+        exit(EXIT_FAILURE);
+      }
+      break;
+    case REDIRECT_IN_FD:
+      if (dup2(redir->target_fd, STDIN_FILENO) == -1) {
+        perror("dup2");
+        exit(EXIT_FAILURE);
+      }
       break;
     }
   }

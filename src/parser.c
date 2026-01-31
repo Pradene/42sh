@@ -50,7 +50,21 @@ static bool is_redirect_token(ParserState *state) {
   return parser_match(state, TOKEN_REDIRECT_IN) ||
          parser_match(state, TOKEN_REDIRECT_OUT) ||
          parser_match(state, TOKEN_REDIRECT_APPEND) ||
-         parser_match(state, TOKEN_HEREDOC);
+         parser_match(state, TOKEN_HEREDOC) ||
+         parser_match(state, TOKEN_REDIRECT_IN_FD) ||
+         parser_match(state, TOKEN_REDIRECT_OUT_FD);
+}
+
+static bool is_valid_fd(const char *s, int *fd) {
+  char *endptr;
+  long val = strtol(s, &endptr, 10);
+
+  if (*endptr != '\0' || val < 0 || val > 255) {
+    return false;
+  }
+
+  *fd = (int)val;
+  return true;
 }
 
 static StatusCode parse_redir(ParserState *state, Redir *redir) {
@@ -59,12 +73,11 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
   }
 
   Token token;
-  StatusCode status;
-
-  status = parser_peek(state, &token);
+  StatusCode status = parser_peek(state, &token);
   if (status != OK) {
     return status;
   }
+
   RedirType type;
   switch (token.type) {
   case TOKEN_REDIRECT_IN:
@@ -78,6 +91,12 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
     break;
   case TOKEN_REDIRECT_APPEND:
     type = REDIRECT_APPEND;
+    break;
+  case TOKEN_REDIRECT_IN_FD:
+    type = REDIRECT_IN_FD;
+    break;
+  case TOKEN_REDIRECT_OUT_FD:
+    type = REDIRECT_OUT_FD;
     break;
   default:
     return UNEXPECTED_TOKEN;
@@ -94,16 +113,22 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
     return status;
   }
 
-  char *path = strdup(token.s);
-  if (!path) {
-    return MEM_ALLOCATION_FAILED;
-  }
-
-  redir->target_path = path;
   redir->type = type;
 
-  parser_advance(state);
+  if (type == REDIRECT_IN_FD || type == REDIRECT_OUT_FD) {
+    if (!is_valid_fd(token.s, &redir->target_fd)) {
+      return UNEXPECTED_TOKEN;
+    }
+    redir->target_path = NULL;
+  } else {
+    redir->target_path = strdup(token.s);
+    if (!redir->target_path) {
+      return MEM_ALLOCATION_FAILED;
+    }
+    redir->target_fd = -1;
+  }
 
+  parser_advance(state);
   return OK;
 }
 
@@ -120,7 +145,7 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
     Token token;
     StatusCode status = parser_peek(state, &token);
     if (status != OK) {
-      free(node);
+      ast_free(node);
       return status;
     }
 
@@ -128,15 +153,10 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
       Token token;
       StatusCode status = parser_peek(state, &token);
       if (status != OK) {
-        free(node);
+        ast_free(node);
         return status;
       }
-      char *s = strdup(token.s);
-      if (!s) {
-        free(node);
-        return MEM_ALLOCATION_FAILED;
-      }
-      vec_push(&node->command.args, s);
+      vec_push(&node->command.args, token.s);
       parser_advance(state);
     } else if (is_redirect_token(state)) {
       Redir redir = {0};
@@ -324,7 +344,8 @@ static StatusCode parse_sequence(ParserState *state, AstNode **root) {
     parser_advance(state);
 
     AstNode *right = NULL;
-    if (!parser_match(state, TOKEN_RPAREN) && !parser_match(state, TOKEN_NEWLINE) &&
+    if (!parser_match(state, TOKEN_RPAREN) &&
+        !parser_match(state, TOKEN_NEWLINE) &&
         !parser_match(state, TOKEN_RBRACE) && !parser_match(state, TOKEN_EOF)) {
       status = parse_logical(state, &right);
       if (status != OK) {
@@ -356,12 +377,13 @@ StatusCode parse(const char *input, AstNode **root) {
   }
 
   ParserState state = {
-    .lex_state = {
-      .input = input,
-      .position = 0,
-    },
-    .current_token = {0},
-    .token_ready = false,
+      .lex_state =
+          {
+              .input = input,
+              .position = 0,
+          },
+      .current_token = {0},
+      .token_ready = false,
   };
 
   AstNode *node = NULL;

@@ -115,7 +115,8 @@ void expansion(AstNode *root, const Environment *env) {
     }
 
     vec_foreach(Redir, redir, &root->command.redirs) {
-      if (redir->type == REDIRECT_HEREDOC) {
+      if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD ||
+          redir->type == REDIRECT_IN_FD) {
         continue;
       }
       char *expanded = expand(redir->target_path, env);

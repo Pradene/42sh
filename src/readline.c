@@ -1,7 +1,6 @@
 #include "sb.h"
 
 #include <stdbool.h>
-#include <stdlib.h>
 #include <unistd.h>
 
 extern bool is_interactive;
@@ -19,11 +18,12 @@ char *readline(const char *prompt) {
     if (readc <= 0) {
       break;
     }
-    
-    sb_append_char(&sb, c);
+
     if (c == '\n') {
       break;
     }
+
+    sb_append_char(&sb, c);
   }
 
   return sb_as_cstr(&sb);
