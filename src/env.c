@@ -16,13 +16,11 @@ StatusCode env_copy(Environment *env, const char **envp) {
 }
 
 void env_free(Environment *env) {
-  vec_foreach(char *,  var, env) {
-    free(*var);
-  }
+  vec_foreach(char *, var, env) { free(*var); }
   vec_free(env);
 }
 
-const char *env_find(const Environment *env, const char *name) {
+char *env_find(const Environment *env, const char *name) {
   size_t name_length = strlen(name);
   vec_foreach(char *, var, env) {
     if (strncmp(*var, name, name_length) == 0 && (*var)[name_length] == '=') {
@@ -54,7 +52,5 @@ StatusCode env_set(Environment *env, const char *name, const char *value) {
 }
 
 void env_print(const Environment *env) {
-  vec_foreach(char *, var, env) {
-    printf("%s\n", *var);
-  }
+  vec_foreach(char *, var, env) { printf("%s\n", *var); }
 }

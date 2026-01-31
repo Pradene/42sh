@@ -16,6 +16,7 @@ static Builtin builtins[] = {
   { "exit", builtin_exit },
   { "export", builtin_export },
   { "type", builtin_type },
+  { "cd", builtin_cd },
   { NULL, NULL }
 };
 
