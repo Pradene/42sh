@@ -15,6 +15,23 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+bool is_interactive = false;
+
+bool strendswith(const char *s, const char *suffix) {
+  if (!s || !suffix) {
+    return false;
+  }
+  
+  size_t s_len = strlen(s);
+  size_t suffix_len = strlen(suffix);
+  
+  if (suffix_len > s_len) {
+    return false;
+  }
+  
+  return strcmp(s + s_len - suffix_len, suffix) == 0;
+}
+
 AstNode *get_command() {
   StringBuffer sb = {0};
   char *line = readline("$ ");
@@ -26,9 +43,19 @@ AstNode *get_command() {
   free(line);
 
   while (true) {
+    if (strendswith(sb_as_cstr(&sb), "\\\n")) {
+      line = readline("> ");
+      if (!line) {
+        sb_free(&sb);
+        exit(EXIT_SUCCESS);
+      }
+      sb_append(&sb, line);
+      free(line);
+      continue;
+    }
+
     AstNode *root = NULL;
     StatusCode status = parse(sb_as_cstr(&sb), &root);
-    
     if (status == INCOMPLETE_INPUT) {
       line = readline("> ");
       if (!line) {
@@ -49,7 +76,6 @@ AstNode *get_command() {
       read_heredocs(&sb, root);
     }
 
-    add_history(sb_as_cstr(&sb));
     sb_free(&sb);
     return root;
   }
@@ -65,7 +91,9 @@ int main(int argc, char **argv, char **envp) {
   Environment env = {0};
   env_copy(&env, (const char **)envp);
 
-  rl_getc_function = fgetc;
+  if (isatty(STDIN_FILENO)) {
+    is_interactive = true;
+  }
 
   struct sigaction sa;
   sigemptyset(&sa.sa_mask);

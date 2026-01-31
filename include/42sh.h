@@ -16,3 +16,5 @@ void execute_command(AstNode *root, Environment *env);
 void read_heredocs(StringBuffer *sb, AstNode *root);
 
 char *find_command_path(const char *cmd, Environment *env);
+
+char *readline(const char *prompt);

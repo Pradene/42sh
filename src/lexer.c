@@ -1,6 +1,7 @@
 #include "status.h"
 #include "lexer.h"
 #include "vec.h"
+#include "sb.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -65,7 +66,7 @@ StatusCode next_token(LexState *state, Token *token) {
   
   while (s[*i]) {
     size_t start = *i;
-
+    
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
@@ -73,24 +74,38 @@ StatusCode next_token(LexState *state, Token *token) {
         return OK;
       }
     }
-
+    
     if (isspace(s[*i])) {
       ++(*i);
       continue;
     }
-
+    
+    StringBuffer sb = {0};
     while (s[*i]) {
       if (isspace(s[*i]) || strchr("|&;[](){}<>", s[*i])) {
         break;
       }
 
-      if (s[*i] == '$') {
+      if (s[*i] == '\\') {
+        ++(*i);
+        if (s[*i]) {
+          if (s[*i] != '\n') {
+            sb_append_char(&sb, s[*i]);
+          }
+          ++(*i);
+        } else {
+          sb_free(&sb);
+          return INCOMPLETE_INPUT;
+        }
+      } else if (s[*i] == '$') {
+        sb_append_char(&sb, s[*i]);
         ++(*i);
         if (s[*i] && (s[*i] == '{' || s[*i] == '(')) {
           char open = s[*i];
           char close = (open == '{') ? '}' : ')';
           int depth = 1;
 
+          sb_append_char(&sb, s[*i]);
           ++(*i);
           while (s[*i] && depth > 0) {
             if (s[*i] == open) {
@@ -98,43 +113,45 @@ StatusCode next_token(LexState *state, Token *token) {
             } else if (s[*i] == close) {
               depth--;
             }
+            sb_append_char(&sb, s[*i]);
             ++(*i);
           }
           if (depth != 0) {
+            sb_free(&sb);
             return INCOMPLETE_INPUT;
           }
         }
-      } else if (s[*i] == '\\') {
-        ++(*i);
-        if (s[*i]) {
-          ++(*i);
-        } else {
-          return INCOMPLETE_INPUT;
-        }
       } else if (s[*i] == '\"' || s[*i] == '\'') {
-        char quote = s[(*i)++];
+        char quote = s[*i];
+        sb_append_char(&sb, s[*i]);
+        ++(*i);
         while (s[*i] && s[*i] != quote) {
           if (quote == '\"' && s[*i] == '\\') {
+            sb_append_char(&sb, s[*i]);
             ++(*i);
             if (s[*i]) {
+              sb_append_char(&sb, s[*i]);
               ++(*i);
             }
           } else {
+            sb_append_char(&sb, s[*i]);
             ++(*i);
           }
         }
         if (s[*i] == quote) {
+          sb_append_char(&sb, s[*i]);
           ++(*i);
         } else {
+          sb_free(&sb);
           return INCOMPLETE_INPUT;
         }
       } else {
+        sb_append_char(&sb, s[*i]);
         ++(*i);
       }
     }
 
-    char *word = strndup(s + start, *i - start);
-    *token = (Token){.s = word, .position = start, .type = TOKEN_WORD};
+    *token = (Token){.s = sb_as_cstr(&sb), .position = start, .type = TOKEN_WORD};
     return OK;
   }
 
