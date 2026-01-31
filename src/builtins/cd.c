@@ -40,7 +40,6 @@ void builtin_cd(AstNode *node, Environment *env) {
     return;
   }
   if (chdir(path) == -1) {
-    printf("Error\n");
     return;
   }
   if (!getcwd(pwd, MAX_PATH)) {
