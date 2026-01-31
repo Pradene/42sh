@@ -22,7 +22,11 @@ void read_heredoc(StringBuffer *sb, Redir *redir) {
 
   char *line;
   while ((line = readline("> ")) != NULL) {
-    sb_append_char(sb, '\n');
+    size_t len = strlen(line);
+    if (len > 0 && line[len - 1] == '\n') {
+      line[len - 1] = '\0';
+    }
+
     sb_append(sb, line);
 
     if (strcmp(line, redir->target_path) == 0) {

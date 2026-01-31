@@ -119,7 +119,7 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
   while (true) {
     Token token;
     StatusCode status = parser_peek(state, &token);
-    if (status != OK && status != UNEXPECTED_TOKEN) {
+    if (status != OK) {
       free(node);
       return status;
     }

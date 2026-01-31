@@ -13,7 +13,7 @@ all: $(NAME)
 
 $(NAME): $(OBJS)
 	@echo "\033[1;34m[LINK]\033[0m Creating executable: $(NAME)"
-	@$(CC) $(CFLAGS) $(OBJS) -lreadline -o $(NAME)
+	@$(CC) $(CFLAGS) $(OBJS) -o $(NAME)
 
 $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.c
 	@mkdir -p $(@D)
