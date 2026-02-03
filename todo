@@ -1,5 +1,4 @@
 - variable
 - hash table
 - built-ins (jobs, fg, bg, unset, set, alias, unalias, hash)
-- ${} to $``
 - Parsing $() and $(())

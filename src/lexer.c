@@ -38,6 +38,10 @@ const char *tokentype_str(const TokenType type) {
   return "UNKNOWN";
 }
 
+static inline bool is_delimiter(char c) {
+  return isspace(c) || strchr("|&;[](){}<>", c) != NULL;
+}
+
 StatusCode next_token(LexState *state, Token *token) {
   static const struct {
     const char *s;
@@ -85,7 +89,7 @@ StatusCode next_token(LexState *state, Token *token) {
 
     StringBuffer sb = {0};
     while (s[*i]) {
-      if (isspace(s[*i]) || strchr("|&;[](){}<>", s[*i])) {
+      if (is_delimiter(s[*i])) {
         break;
       }
 
@@ -103,25 +107,24 @@ StatusCode next_token(LexState *state, Token *token) {
       } else if (s[*i] == '$') {
         sb_append_char(&sb, s[*i]);
         ++(*i);
-        if (s[*i] && (s[*i] == '{' || s[*i] == '(')) {
-          char open = s[*i];
-          char close = (open == '{') ? '}' : ')';
-          int depth = 1;
-
+        if (s[*i] == '`') {
           sb_append_char(&sb, s[*i]);
           ++(*i);
-          while (s[*i] && depth > 0) {
-            if (s[*i] == open) {
-              depth++;
-            } else if (s[*i] == close) {
-              depth--;
-            }
+          while (s[*i] && s[*i] != '`') {
             sb_append_char(&sb, s[*i]);
             ++(*i);
           }
-          if (depth != 0) {
+          if (s[*i] == '`') {
+            sb_append_char(&sb, s[*i]);
+            ++(*i);
+          } else {
             sb_free(&sb);
             return INCOMPLETE_INPUT;
+          }
+        } else {
+          while (s[*i] && !is_delimiter(s[*i])) {
+            sb_append_char(&sb, s[*i]);
+            ++(*i);
           }
         }
       } else if (s[*i] == '\"' || s[*i] == '\'') {

@@ -15,28 +15,17 @@ static char *expand(const char *s, const Environment *env) {
   size_t i = 0;
   while (s[i]) {
     if (s[i] == '$') {
+      size_t start = i;
       ++i;
-      if (s[i] == '{') {
+      if (s[i] == '`') {
         ++i;
-        size_t depth = 1;
-        size_t start = i;
-        while (s[i]) {
-          if (s[i] == '{') {
-            ++depth;
-          } else if (s[i] == '}') {
-            --depth;
-          }
-
-          if (depth == 0) {
-            break;
-          } else {
-            ++i;
-          }
+        size_t v_start = i;
+        while (s[i] && s[i] != '`') {
+          ++i;
         }
-
-        if (s[i] == '}') {
-          size_t v_length = i - start;
-          char *v_name = strndup(s + start, v_length);
+        if (s[i] == '`') {
+          size_t v_length = i - v_start;
+          char *v_name = strndup(s + v_start, v_length);
           if (v_name) {
             const char *v_value = env_find(env, v_name);
             if (v_value) {
@@ -46,18 +35,16 @@ static char *expand(const char *s, const Environment *env) {
           }
           ++i;
         } else {
-          sb_append_char(&sb, '$');
-          sb_append_char(&sb, '{');
           sb_append(&sb, s + start);
         }
       } else if (isalpha(s[i]) || s[i] == '_') {
-        size_t start = i;
+        size_t v_start = i;
         while (isalnum(s[i]) || s[i] == '_') {
           ++i;
         }
 
-        size_t v_length = i - start;
-        char *v_name = strndup(s + start, v_length);
+        size_t v_length = i - v_start;
+        char *v_name = strndup(s + v_start, v_length);
         if (v_name) {
           const char *v_value = env_find(env, v_name);
           if (v_value) {
