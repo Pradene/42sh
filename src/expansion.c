@@ -2,10 +2,27 @@
 #include "env.h"
 #include "sb.h"
 #include "vec.h"
+#include "42sh.h"
 
 #include <ctype.h>
 
-static char *expand(const char *s, const Environment *env) {
+static const char *get_variable(const Shell *shell, const char *name) {
+  Variable *var;
+
+  var = env_find(&shell->local, name);
+  if (var && var->value) {
+    return var->value;
+  }
+
+  var = env_find(&shell->environment, name);
+  if (var && var->value) {
+    return var->value;
+  }
+
+  return "";
+}
+
+static char *expand(const char *s, const Shell *shell) {
   StringBuffer sb = {0};
 
   if (!s || s[0] == '\0') {
@@ -27,7 +44,7 @@ static char *expand(const char *s, const Environment *env) {
           size_t v_length = i - v_start;
           char *v_name = strndup(s + v_start, v_length);
           if (v_name) {
-            const char *v_value = env_find(env, v_name);
+            const char *v_value = get_variable(shell, v_name);
             if (v_value) {
               sb_append(&sb, v_value);
             }
@@ -46,7 +63,7 @@ static char *expand(const char *s, const Environment *env) {
         size_t v_length = i - v_start;
         char *v_name = strndup(s + v_start, v_length);
         if (v_name) {
-          const char *v_value = env_find(env, v_name);
+          const char *v_value = get_variable(shell, v_name);
           if (v_value) {
             sb_append(&sb, v_value);
           }
@@ -64,7 +81,7 @@ static char *expand(const char *s, const Environment *env) {
   return sb_as_cstr(&sb);
 }
 
-void expansion(AstNode *root, const Environment *env) {
+void expansion(AstNode *root, const Shell *shell) {
   if (!root) {
     return;
   }
@@ -83,7 +100,7 @@ void expansion(AstNode *root, const Environment *env) {
       if (redir->type == REDIRECT_HEREDOC) {
         continue;
       }
-      char *expanded = expand(redir->target_path, env);
+      char *expanded = expand(redir->target_path, shell);
       if (expanded) {
         free(redir->target_path);
         redir->target_path = expanded;
@@ -94,7 +111,7 @@ void expansion(AstNode *root, const Environment *env) {
 
   case NODE_COMMAND:
     vec_foreach(char *, arg, &root->command.args) {
-      char *expanded = expand(*arg, env);
+      char *expanded = expand(*arg, shell);
       if (expanded) {
         free(*arg);
         *arg = expanded;
@@ -106,7 +123,7 @@ void expansion(AstNode *root, const Environment *env) {
           redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *expanded = expand(redir->target_path, env);
+      char *expanded = expand(redir->target_path, shell);
       if (expanded) {
         free(redir->target_path);
         redir->target_path = expanded;

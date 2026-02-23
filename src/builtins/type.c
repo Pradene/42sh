@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-void builtin_type(AstNode *node, Environment *env) {
+void builtin_type(AstNode *node, Variables *env) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 

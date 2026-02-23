@@ -24,7 +24,7 @@ static int is_numeric(const char *s) {
   return true;
 }
 
-void builtin_exit(AstNode *node, Environment *env) {
+void builtin_exit(AstNode *node, Variables *env) {
   (void)env;
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);

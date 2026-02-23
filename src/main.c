@@ -85,8 +85,8 @@ int main(int argc, char **argv, char **envp) {
   (void)argc;
   (void)argv;
 
-  Environment env = {0};
-  env_copy(&env, (const char **)envp);
+  Shell shell = {0};
+  env_from_cstr_array(&(shell.environment), (const char **)envp);
 
   if (isatty(STDIN_FILENO)) {
     is_interactive = true;
@@ -110,12 +110,13 @@ int main(int argc, char **argv, char **envp) {
     sa.sa_handler = SIG_IGN;
     sigaction(SIGINT, &sa, NULL);
 
-    execute_command(root, &env);
+    execute_command(root, &shell);
 
     ast_free(root);
   }
 
-  env_free(&env);
+  env_free(&shell.environment);
+  env_free(&shell.local);
 
   return 0;
 }

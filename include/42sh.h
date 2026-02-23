@@ -6,15 +6,20 @@
 #include "env.h"
 #include "sb.h"
 
+typedef struct {
+  Variables environment;
+  Variables local;
+} Shell;
+
 void sigint_handler(int code);
 void sigint_heredoc_handler(int code);
 
-void expansion(AstNode *root, const Environment *env);
+void expansion(AstNode *root, const Shell *shell);
 void stripping(AstNode *root);
 
-void execute_command(AstNode *root, Environment *env);
+void execute_command(AstNode *root, Shell *shell);
 void read_heredocs(StringBuffer *sb, AstNode *root);
 
-char *find_command_path(const char *cmd, Environment *env);
+char *find_command_path(const char *cmd, Variables *env);
 
 char *readline(const char *prompt);

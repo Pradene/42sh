@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-typedef void (*builtin)(AstNode *, Environment *);
+typedef void (*builtin)(AstNode *, Variables *);
 typedef struct {
   const char *name;
   builtin fn;
@@ -17,6 +17,7 @@ static Builtin builtins[] = {
   { "export", builtin_export },
   { "type", builtin_type },
   { "cd", builtin_cd },
+  { "unset", builtin_unset },
   { NULL, NULL }
 };
 
@@ -34,7 +35,7 @@ bool is_builtin(const char *command) {
   return false;
 }
 
-void exec_builtin(AstNode *node, Environment *env) {
+void exec_builtin(AstNode *node, Variables *env) {
   if (!node || node->type != NODE_COMMAND) {
     return;
   }

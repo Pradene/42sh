@@ -24,7 +24,7 @@ static bool is_executable(const char *path) {
   return false;
 }
 
-char *find_command_path(const char *cmd, Environment *env) {
+char *find_command_path(const char *cmd, Variables *env) {
   if (strchr(cmd, '/')) {
     if (is_executable(cmd)) {
       return strdup(cmd);
@@ -32,12 +32,12 @@ char *find_command_path(const char *cmd, Environment *env) {
     return NULL;
   }
 
-  const char *env_path = env_find(env, "PATH");
-  if (!env_path) {
+  const char *paths = env_find(env, "PATH")->value;
+  if (!paths) {
     return NULL;
   }
 
-  char *copy = strdup(env_path);
+  char *copy = strdup(paths);
   if (!copy) {
     return NULL;
   }
@@ -124,13 +124,13 @@ static void apply_redirs(Redirs *redirs) {
   }
 }
 
-void execute_simple_command(AstNode *node, Environment *env) {
+void execute_simple_command(AstNode *node, Shell *shell) {
   if (!node || node->type != NODE_COMMAND) {
     return;
   }
 
   if (is_builtin(node->command.args.data[0])) {
-    exec_builtin(node, env);
+    exec_builtin(node, &shell->environment);
     return;
   }
 
@@ -139,12 +139,10 @@ void execute_simple_command(AstNode *node, Environment *env) {
     return;
   } else if (pid == 0) {
     char **args = node->command.args.data;
-    char *path = find_command_path(args[0], env);
+    char *path = find_command_path(args[0], &shell->environment);
     if (!path) {
       fprintf(stderr, "Command not found: %s\n", args[0]);
       exit(EXIT_FAILURE);
-    } else {
-      env_set(env, "_", path);
     }
 
     struct sigaction sa;
@@ -156,12 +154,9 @@ void execute_simple_command(AstNode *node, Environment *env) {
 
     apply_redirs(&node->command.redirs);
 
-    vec_push(env, NULL);
     vec_push(&node->command.args, NULL);
 
-    execve(path, args, env->data);
-
-    free(path);
+    execve(path, args, env_to_cstr_array(&shell->environment));
     exit(EXIT_FAILURE);
   } else {
     int status;
@@ -179,7 +174,7 @@ void execute_simple_command(AstNode *node, Environment *env) {
   }
 }
 
-void execute_pipe(AstNode *root, Environment *env) {
+void execute_pipe(AstNode *root, Shell *shell) {
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     perror("pipe");
@@ -197,7 +192,7 @@ void execute_pipe(AstNode *root, Environment *env) {
     dup2(pipefd[1], STDOUT_FILENO);
     close(pipefd[1]);
 
-    execute_command(root->operator.left, env);
+    execute_command(root->operator.left, shell);
     exit(g_status);
   }
 
@@ -212,7 +207,7 @@ void execute_pipe(AstNode *root, Environment *env) {
     dup2(pipefd[0], STDIN_FILENO);
     close(pipefd[0]);
 
-    execute_command(root->operator.right, env);
+    execute_command(root->operator.right, shell);
     exit(g_status);
   }
 
@@ -224,7 +219,7 @@ void execute_pipe(AstNode *root, Environment *env) {
   waitpid(pid_right, &status, 0);
 }
 
-void execute_subshell(AstNode *node, Environment *env) {
+void execute_subshell(AstNode *node, Shell *shell) {
   pid_t pid = fork();
 
   if (pid < 0) {
@@ -239,7 +234,7 @@ void execute_subshell(AstNode *node, Environment *env) {
 
     apply_redirs(&node->group.redirs);
 
-    execute_command(node->group.inner, env);
+    execute_command(node->group.inner, shell);
     exit(g_status);
   } else {
     int status;
@@ -257,47 +252,47 @@ void execute_subshell(AstNode *node, Environment *env) {
   }
 }
 
-void execute_command(AstNode *root, Environment *env) {
+void execute_command(AstNode *root, Shell *shell) {
   if (!root) {
     return;
   }
 
   switch (root->type) {
   case NODE_AND:
-    execute_command(root->operator.left, env);
+    execute_command(root->operator.left, shell);
     if (g_status == 0) {
-      execute_command(root->operator.right, env);
+      execute_command(root->operator.right, shell);
     }
     return;
   case NODE_OR:
-    execute_command(root->operator.left, env);
+    execute_command(root->operator.left, shell);
     if (g_status != 0) {
-      execute_command(root->operator.right, env);
+      execute_command(root->operator.right, shell);
     }
     return;
   case NODE_PIPE: {
-    execute_pipe(root, env);
+    execute_pipe(root, shell);
     return;
   }
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    execute_command(root->operator.left, env);
-    execute_command(root->operator.right, env);
+    execute_command(root->operator.left, shell);
+    execute_command(root->operator.right, shell);
     return;
   case NODE_BRACE:
-    expansion(root, env);
+    expansion(root, shell);
     stripping(root);
-    execute_command(root->group.inner, env);
+    execute_command(root->group.inner, shell);
     return;
   case NODE_PAREN:
-    expansion(root, env);
+    expansion(root, shell);
     stripping(root);
-    execute_subshell(root, env);
+    execute_subshell(root, shell);
     return;
   case NODE_COMMAND:
-    expansion(root, env);
+    expansion(root, shell);
     stripping(root);
-    execute_simple_command(root, env);
+    execute_simple_command(root, shell);
     return;
   }
 }

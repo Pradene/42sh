@@ -5,13 +5,21 @@
 #include "status.h"
 
 typedef struct {
-  char **data;
+  char *name;
+  char *value;
+
+} Variable;
+
+typedef struct {
+  Variable *data;
   size_t size;
   size_t capacity;
-} Environment;
+} Variables;
 
-void env_free(Environment *env);
-StatusCode env_copy(Environment *env, const char **envp);
-char *env_find(const Environment *env, const char *name);
-StatusCode env_set(Environment *env, const char *name, const char *value);
-void env_print(const Environment *env);
+void env_free(Variables *env);
+StatusCode env_from_cstr_array(Variables *env, const char **envp);
+char **env_to_cstr_array(const Variables *env);
+Variable *env_find(const Variables *env, const char *name);
+StatusCode env_set(Variables *env, const char *name, const char *value);
+StatusCode env_unset(Variables *env, const char *name);
+void env_print(const Variables *env);

@@ -51,7 +51,7 @@ static char *interpret_escapes(const char *str) {
   return result;
 }
 
-void builtin_echo(AstNode *node, Environment *env) {
+void builtin_echo(AstNode *node, Variables *env) {
   (void)env;
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
