@@ -32,12 +32,12 @@ char *find_command_path(const char *cmd, Variables *env) {
     return NULL;
   }
 
-  const char *paths = env_find(env, "PATH")->value;
-  if (!paths) {
+  Variable *variable = env_find(env, "PATH");
+  if (!variable) {
     return NULL;
   }
 
-  char *copy = strdup(paths);
+  char *copy = strdup(variable->value);
   if (!copy) {
     return NULL;
   }

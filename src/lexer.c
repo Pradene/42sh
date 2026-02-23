@@ -47,26 +47,28 @@ StatusCode next_token(LexState *state, Token *token) {
     const char *s;
     size_t length;
     TokenType type;
-  } operators[] = {{">>", 2, TOKEN_REDIRECT_APPEND},
-                   {"<<", 2, TOKEN_HEREDOC},
-                   {">&", 2, TOKEN_REDIRECT_OUT_FD},
-                   {"<&", 2, TOKEN_REDIRECT_IN_FD},
-                   {"&&", 2, TOKEN_AND},
-                   {"||", 2, TOKEN_OR},
-                   {"$(", 2, TOKEN_SUBSTITUTION},
-                   {"|", 1, TOKEN_PIPE},
-                   {"<", 1, TOKEN_REDIRECT_IN},
-                   {">", 1, TOKEN_REDIRECT_OUT},
-                   {";", 1, TOKEN_SEMICOLON},
-                   {"(", 1, TOKEN_LPAREN},
-                   {")", 1, TOKEN_RPAREN},
-                   {"[", 1, TOKEN_LBRACKET},
-                   {"]", 1, TOKEN_RBRACKET},
-                   {"{", 1, TOKEN_LBRACE},
-                   {"}", 1, TOKEN_RBRACE},
-                   {"&", 1, TOKEN_OPERAND},
-                   {"\n", 1, TOKEN_NEWLINE},
-                   {NULL, 0, 0}};
+  } operators[] = {
+    {">>", 2, TOKEN_REDIRECT_APPEND},
+    {"<<", 2, TOKEN_HEREDOC},
+    {">&", 2, TOKEN_REDIRECT_OUT_FD},
+    {"<&", 2, TOKEN_REDIRECT_IN_FD},
+    {"&&", 2, TOKEN_AND},
+    {"||", 2, TOKEN_OR},
+    {"$(", 2, TOKEN_SUBSTITUTION},
+    {"|", 1, TOKEN_PIPE},
+    {"<", 1, TOKEN_REDIRECT_IN},
+    {">", 1, TOKEN_REDIRECT_OUT},
+    {";", 1, TOKEN_SEMICOLON},
+    {"(", 1, TOKEN_LPAREN},
+    {")", 1, TOKEN_RPAREN},
+    {"[", 1, TOKEN_LBRACKET},
+    {"]", 1, TOKEN_RBRACKET},
+    {"{", 1, TOKEN_LBRACE},
+    {"}", 1, TOKEN_RBRACE},
+    {"&", 1, TOKEN_OPERAND},
+    {"\n", 1, TOKEN_NEWLINE},
+    {NULL, 0, 0}
+  };
 
   const char *s = state->input;
   size_t *i = &state->position;

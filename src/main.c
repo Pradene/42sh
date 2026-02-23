@@ -63,7 +63,7 @@ AstNode *get_command() {
       free(line);
       continue;
     }
-    
+
     if (status != OK) {
       sb_free(&sb);
       return NULL;

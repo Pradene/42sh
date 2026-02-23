@@ -18,17 +18,19 @@ void builtin_cd(AstNode *node, Variables *env) {
 
   char *path = NULL;
   if (vec_size(&node->command.args) == 1) {
-    path = env_find(env, "HOME")->value;
-    if (!path) {
+    Variable *variable = env_find(env, "HOME");
+    if (!variable || !variable->value) {
       return;
     }
+    path = variable->value;
   } else {
     path = node->command.args.data[1];
     if (!strcmp("-", path)) {
-      path = env_find(env, "OLDPWD")->value;
-      if (!path) {
+      Variable *variable = env_find(env, "OLDPWD");
+      if (!variable || !variable->value) {
         return;
       }
+      path = variable->value;
     }
   }
 

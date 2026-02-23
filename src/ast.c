@@ -71,8 +71,7 @@ static void ast_print_redirs(Redirs *redirs, int depth) {
       type_str = "?";
     }
 
-    printf("REDIRECT %s %s\n", type_str,
-           redir->target_path ? redir->target_path : "");
+    printf("REDIRECT %s %s\n", type_str, redir->target_path ? redir->target_path : "");
   }
 }
 

@@ -249,8 +249,9 @@ static StatusCode parse_pipeline(ParserState *state, AstNode **root) {
     status = parse_group(state, &right);
     if (status != OK) {
       ast_free(left);
-      return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT
-                                            : UNEXPECTED_TOKEN;
+      return parser_match(state, TOKEN_EOF) ?
+        INCOMPLETE_INPUT :
+        UNEXPECTED_TOKEN;
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
@@ -293,8 +294,9 @@ static StatusCode parse_logical(ParserState *state, AstNode **root) {
     status = parse_pipeline(state, &right);
     if (status != OK) {
       ast_free(left);
-      return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT
-                                            : UNEXPECTED_TOKEN;
+      return parser_match(state, TOKEN_EOF) ?
+        INCOMPLETE_INPUT :
+        UNEXPECTED_TOKEN;
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
@@ -377,13 +379,12 @@ StatusCode parse(const char *input, AstNode **root) {
   }
 
   ParserState state = {
-      .lex_state =
-          {
-              .input = input,
-              .position = 0,
-          },
-      .current_token = {0},
-      .token_ready = false,
+    .lex_state = {
+      .input = input,
+      .position = 0,
+    },
+    .current_token = {0},
+    .token_ready = false,
   };
 
   AstNode *node = NULL;
