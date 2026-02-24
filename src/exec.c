@@ -14,8 +14,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-static int g_status = 0;
-
 static bool is_executable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
@@ -183,9 +181,9 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     waitpid(pid, &status, 0);
 
     if (WIFEXITED(status)) {
-      g_status = WEXITSTATUS(status);
+      shell->status = WEXITSTATUS(status);
     } else if (WIFSIGNALED(status)) {
-      g_status = 128 + WTERMSIG(status);
+      shell->status = 128 + WTERMSIG(status);
     }
 
     if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
@@ -213,7 +211,7 @@ void execute_pipe(AstNode *root, Shell *shell) {
     close(pipefd[1]);
 
     execute_command(root->operator.left, shell);
-    int status = g_status;
+    int status = shell->status;
 
     ast_free(shell->command);
     ht_clear(&shell->environment);
@@ -235,7 +233,7 @@ void execute_pipe(AstNode *root, Shell *shell) {
     close(pipefd[0]);
 
     execute_command(root->operator.right, shell);
-    int status = g_status;
+    int status = shell->status;
 
     ast_free(shell->command);
     ht_clear(&shell->environment);
@@ -251,9 +249,9 @@ void execute_pipe(AstNode *root, Shell *shell) {
   waitpid(pid_left, NULL, 0);
   waitpid(pid_right, &status, 0);
   if (WIFEXITED(status)) {
-    g_status = WEXITSTATUS(status);
+    shell->status = WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
-    g_status = 128 + WTERMSIG(status);
+    shell->status = 128 + WTERMSIG(status);
   }
 }
 
@@ -278,15 +276,15 @@ void execute_subshell(AstNode *node, Shell *shell) {
     ht_clear(&shell->environment);
     ht_clear(&shell->aliases);
 
-    exit(g_status);
+    exit(shell->status);
   } else {
     int status;
     waitpid(pid, &status, 0);
 
     if (WIFEXITED(status)) {
-      g_status = WEXITSTATUS(status);
+      shell->status = WEXITSTATUS(status);
     } else if (WIFSIGNALED(status)) {
-      g_status = 128 + WTERMSIG(status);
+      shell->status = 128 + WTERMSIG(status);
     }
 
     if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
@@ -303,13 +301,13 @@ void execute_command(AstNode *root, Shell *shell) {
   switch (root->type) {
   case NODE_AND:
     execute_command(root->operator.left, shell);
-    if (g_status == 0) {
+    if (shell->status == 0) {
       execute_command(root->operator.right, shell);
     }
     return;
   case NODE_OR:
     execute_command(root->operator.left, shell);
-    if (g_status != 0) {
+    if (shell->status != 0) {
       execute_command(root->operator.right, shell);
     }
     return;
