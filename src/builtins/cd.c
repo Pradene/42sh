@@ -52,11 +52,11 @@ void builtin_cd(AstNode *node, Shell *shell) {
   old->content = old_path;
   old->exported = true;
   old->readonly = false;
-  env_set(&shell->environment, "OLDPWD", old);
+  ht_insert(&shell->environment, strdup("OLDPWD"), old);
   
   Variable *new = (Variable *)malloc(sizeof(Variable));
   new->content = new_path;
   new->exported = true;
   new->readonly = false;
-  env_set(&shell->environment, "PWD", new);
+  ht_insert(&shell->environment, strdup("PWD"), new);
 }

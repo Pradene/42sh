@@ -15,11 +15,12 @@ typedef struct {
   size_t size;
   size_t capacity;
   
+  size_t value_size;
   void (*free)(void *);
 } HashTable;
 
-HashEntry *ht_get(const HashTable *ht, const char *key);
+void ht_insert(HashTable *ht, char *key, void *value);
 bool ht_contains(const HashTable* table, const char *key);
-void ht_insert(HashTable *ht, const char *key, void *value);
+HashEntry *ht_get(const HashTable *ht, const char *key);
 void ht_remove(HashTable *ht, const char *key);
 void ht_clear(HashTable *ht);

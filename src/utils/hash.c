@@ -37,7 +37,7 @@ static bool ht_resize(HashTable *ht, size_t new_capacity) {
   return true;
 }
 
-void ht_insert(HashTable *ht, const char *key, void *value) {
+void ht_insert(HashTable *ht, char *key, void *value) {
   if (ht->capacity == 0) {
     ht_resize(ht, 32);
   }
@@ -51,7 +51,9 @@ void ht_insert(HashTable *ht, const char *key, void *value) {
   HashEntry *entry = ht->buckets[hash];
   while (entry) {
     if (strcmp(entry->key, key) == 0) {
-      free(entry->value);
+      ht->free(entry->value);
+      free(entry->key);
+      entry->key = key;
       entry->value = value;
       return;
     }
@@ -62,7 +64,7 @@ void ht_insert(HashTable *ht, const char *key, void *value) {
   if (!entry) {
     return;
   }
-  entry->key = strdup(key);
+  entry->key = key;
   entry->value = value;
   entry->next = ht->buckets[hash];
   ht->buckets[hash] = entry;

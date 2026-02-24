@@ -28,7 +28,6 @@ static int is_numeric(const char *s) {
 }
 
 void builtin_exit(AstNode *node, Shell *shell) {
-  (void)shell;
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 

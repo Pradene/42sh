@@ -40,9 +40,7 @@ void builtin_export(AstNode *node, Shell *shell) {
       value->content = content;
       value->exported = true;
       value->readonly = false;
-      env_set(&shell->environment, key, value);
-
-      free(key);
+      ht_insert(&shell->environment, key, value);
     }
   }
 }

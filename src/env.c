@@ -33,8 +33,6 @@ StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
       value->exported = true;
       value->readonly = false;
       ht_insert(env, key, value);
-      
-      free(key);
     }
   }
 
@@ -67,17 +65,6 @@ char **env_to_cstr_array(const HashTable *env) {
 char *env_find(const HashTable *env, const char *name) {
   HashEntry *entry = ht_get(env, name);
   return entry ? (char *)((Variable *)(entry->value))->content : NULL;
-}
-
-StatusCode env_set(HashTable *env, const char *name, void *value) {
-  HashEntry *entry = ht_get(env, name);
-  if (entry) {
-    env->free(entry->value);
-    entry->value = value;
-  } else {
-    ht_insert(env, name, (void *)value);
-  }
-  return OK;
 }
 
 StatusCode env_unset(HashTable *env, const char *name) {

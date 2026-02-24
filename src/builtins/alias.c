@@ -46,7 +46,6 @@ void builtin_alias(AstNode *node, Shell *shell) {
       char *value = strdup(equal + 1);
       ht_insert(&shell->aliases, name, value);
       printf("alias %s='%s'\n", name, value);
-      free(name);
     }
   }
 }
