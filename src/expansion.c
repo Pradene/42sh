@@ -7,16 +7,11 @@
 #include <ctype.h>
 
 static const char *get_variable(const Shell *shell, const char *name) {
-  Variable *var;
+  char *v;
 
-  var = env_find(&shell->local, name);
-  if (var && var->value) {
-    return var->value;
-  }
-
-  var = env_find(&shell->environment, name);
-  if (var && var->value) {
-    return var->value;
+  v = env_find(&shell->environment, name);
+  if (v) {
+    return v;
   }
 
   return "";

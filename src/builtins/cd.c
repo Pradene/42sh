@@ -8,7 +8,7 @@
 
 #define MAX_PATH 4096
 
-void builtin_cd(AstNode *node, Variables *env) {
+void builtin_cd(AstNode *node, HashTable *env) {
   char oldpwd[MAX_PATH];
   char pwd[MAX_PATH];
 
@@ -18,19 +18,13 @@ void builtin_cd(AstNode *node, Variables *env) {
 
   char *path = NULL;
   if (vec_size(&node->command.args) == 1) {
-    Variable *variable = env_find(env, "HOME");
-    if (!variable || !variable->value) {
-      return;
-    }
-    path = variable->value;
+    char *variable = env_find(env, "HOME");
+    path = variable;
   } else {
     path = node->command.args.data[1];
     if (!strcmp("-", path)) {
-      Variable *variable = env_find(env, "OLDPWD");
-      if (!variable || !variable->value) {
-        return;
-      }
-      path = variable->value;
+      char *variable = env_find(env, "OLDPWD");
+      path = variable;
     }
   }
 

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-void builtin_export(AstNode *node, Variables *env) {
+void builtin_export(AstNode *node, HashTable *env) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
@@ -22,13 +22,13 @@ void builtin_export(AstNode *node, Variables *env) {
       continue;
     }
 
-    char *equal_sign = strchr(arg, '=');
-    if (!equal_sign) {
+    char *equal = strchr(arg, '=');
+    if (!equal) {
       continue;
     } else {
-      size_t key_length = equal_sign - arg;
+      size_t key_length = equal - arg;
       char *key = strndup(arg, key_length);
-      char *value = strdup(equal_sign + 1);
+      char *value = strdup(equal + 1);
       
       if (strcmp(value, "") == 0) {
         free(key);

@@ -5,10 +5,12 @@
 #include "ast.h"
 #include "env.h"
 #include "sb.h"
+#include "ht.h"
 
 typedef struct {
-  Variables environment;
-  Variables local;
+  HashTable environment;
+  HashTable local;
+  HashTable aliases;
 } Shell;
 
 void sigint_handler(int code);
@@ -20,6 +22,6 @@ void stripping(AstNode *root);
 void execute_command(AstNode *root, Shell *shell);
 void read_heredocs(StringBuffer *sb, AstNode *root);
 
-char *find_command_path(const char *cmd, Variables *env);
+char *find_command_path(const char *cmd, const char *path);
 
 char *readline(const char *prompt);

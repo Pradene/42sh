@@ -24,7 +24,7 @@ static bool is_executable(const char *path) {
   return false;
 }
 
-char *find_command_path(const char *cmd, Variables *env) {
+char *find_command_path(const char *cmd, const char *paths) {
   if (strchr(cmd, '/')) {
     if (is_executable(cmd)) {
       return strdup(cmd);
@@ -32,12 +32,7 @@ char *find_command_path(const char *cmd, Variables *env) {
     return NULL;
   }
 
-  Variable *variable = env_find(env, "PATH");
-  if (!variable) {
-    return NULL;
-  }
-
-  char *copy = strdup(variable->value);
+  char *copy = strdup(paths);
   if (!copy) {
     return NULL;
   }
@@ -139,7 +134,13 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     return;
   } else if (pid == 0) {
     char **args = node->command.args.data;
-    char *path = find_command_path(args[0], &shell->environment);
+    char *paths = env_find(&shell->environment, "PATH");
+    if (!paths) {
+      fprintf(stderr, "PATH is not set\n");
+      exit(EXIT_FAILURE);
+    }
+    
+    char *path = find_command_path(args[0], paths);
     if (!path) {
       fprintf(stderr, "Command not found: %s\n", args[0]);
       exit(EXIT_FAILURE);
@@ -156,7 +157,21 @@ void execute_simple_command(AstNode *node, Shell *shell) {
 
     vec_push(&node->command.args, NULL);
 
-    execve(path, args, env_to_cstr_array(&shell->environment));
+    char **envp = env_to_cstr_array(&shell->environment);
+    if (!envp) {
+      exit(EXIT_FAILURE);
+    }
+
+    execve(path, args, envp);
+
+    perror("execve");
+
+    for (size_t i = 0; envp[i]; ++i) {
+      free(envp[i]);
+    }
+    free(envp);
+    free(path);
+
     exit(EXIT_FAILURE);
   } else {
     int status;
@@ -193,7 +208,12 @@ void execute_pipe(AstNode *root, Shell *shell) {
     close(pipefd[1]);
 
     execute_command(root->operator.left, shell);
-    exit(g_status);
+    int status = g_status;
+
+    ast_free(root);
+    env_free(&shell->environment);
+
+    exit(status);
   }
 
   pid_t pid_right = fork();
@@ -201,6 +221,7 @@ void execute_pipe(AstNode *root, Shell *shell) {
     perror("fork");
     close(pipefd[0]);
     close(pipefd[1]);
+    waitpid(pid_left, NULL, 0);
     return;
   } else if (pid_right == 0) {
     close(pipefd[1]);
@@ -208,15 +229,25 @@ void execute_pipe(AstNode *root, Shell *shell) {
     close(pipefd[0]);
 
     execute_command(root->operator.right, shell);
-    exit(g_status);
+    int status = g_status;
+
+    ast_free(root);
+    env_free(&shell->environment);
+
+    exit(status);
   }
 
   close(pipefd[0]);
   close(pipefd[1]);
 
   int status;
-  waitpid(pid_left, &status, 0);
+  waitpid(pid_left, NULL, 0);
   waitpid(pid_right, &status, 0);
+  if (WIFEXITED(status)) {
+    g_status = WEXITSTATUS(status);
+  } else if (WIFSIGNALED(status)) {
+    g_status = 128 + WTERMSIG(status);
+  }
 }
 
 void execute_subshell(AstNode *node, Shell *shell) {
@@ -235,6 +266,10 @@ void execute_subshell(AstNode *node, Shell *shell) {
     apply_redirs(&node->group.redirs);
 
     execute_command(node->group.inner, shell);
+
+    ast_free(node);
+    env_free(&shell->environment);
+
     exit(g_status);
   } else {
     int status;

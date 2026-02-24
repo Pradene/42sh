@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdint.h>
 
 bool is_interactive = false;
 
@@ -86,7 +87,8 @@ int main(int argc, char **argv, char **envp) {
   (void)argv;
 
   Shell shell = {0};
-  env_from_cstr_array(&(shell.environment), (const char **)envp);
+
+  env_from_cstr_array(&shell.environment, (const char **)envp);
 
   if (isatty(STDIN_FILENO)) {
     is_interactive = true;
@@ -117,6 +119,7 @@ int main(int argc, char **argv, char **envp) {
 
   env_free(&shell.environment);
   env_free(&shell.local);
+  env_free(&shell.aliases);
 
   return 0;
 }

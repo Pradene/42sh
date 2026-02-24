@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-void builtin_type(AstNode *node, Variables *env) {
+void builtin_type(AstNode *node, HashTable *env) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
@@ -21,7 +21,12 @@ void builtin_type(AstNode *node, Variables *env) {
     if (is_builtin(cmd)) {
       printf("%s is a shell builtin\n", cmd);
     } else {
-      char *path = find_command_path(cmd, env);
+      char *paths = env_find(env, "PATH");
+      if (!paths) {
+        printf("PATH is not set\n");
+        return;
+      }
+      char *path = find_command_path(cmd, paths);
       if (path) {
         printf("%s is %s\n", cmd, path);
         free(path);
