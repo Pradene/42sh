@@ -3,11 +3,12 @@
 #include "ast.h"
 #include "42sh.h"
 #include "vec.h"
+#include "builtin.h"
 
 #include <unistd.h>
 #include <stdio.h>
 
-void builtin_type(AstNode *node, HashTable *env) {
+void builtin_type(AstNode *node, Shell *shell) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
@@ -21,7 +22,7 @@ void builtin_type(AstNode *node, HashTable *env) {
     if (is_builtin(cmd)) {
       printf("%s is a shell builtin\n", cmd);
     } else {
-      char *paths = env_find(env, "PATH");
+      char *paths = env_find(&shell->environment, "PATH");
       if (!paths) {
         printf("PATH is not set\n");
         return;

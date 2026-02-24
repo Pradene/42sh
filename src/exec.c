@@ -125,7 +125,7 @@ void execute_simple_command(AstNode *node, Shell *shell) {
   }
 
   if (is_builtin(node->command.args.data[0])) {
-    exec_builtin(node, &shell->environment);
+    exec_builtin(node, shell);
     return;
   }
 
@@ -212,6 +212,7 @@ void execute_pipe(AstNode *root, Shell *shell) {
 
     ast_free(root);
     env_free(&shell->environment);
+    ht_clear(&shell->aliases);
 
     exit(status);
   }
@@ -233,6 +234,7 @@ void execute_pipe(AstNode *root, Shell *shell) {
 
     ast_free(root);
     env_free(&shell->environment);
+    ht_clear(&shell->aliases);
 
     exit(status);
   }
@@ -269,6 +271,7 @@ void execute_subshell(AstNode *node, Shell *shell) {
 
     ast_free(node);
     env_free(&shell->environment);
+    ht_clear(&shell->aliases);
 
     exit(g_status);
   } else {
@@ -326,6 +329,7 @@ void execute_command(AstNode *root, Shell *shell) {
     return;
   case NODE_COMMAND:
     expansion(root, shell);
+    word_splitting(root);
     stripping(root);
     execute_simple_command(root, shell);
     return;

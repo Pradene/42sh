@@ -9,6 +9,8 @@
 
 typedef struct {
   HashTable environment;
+  HashTable aliases;
+  uint8_t   status;
 } Shell;
 
 void sigint_handler(int code);
@@ -16,6 +18,7 @@ void sigint_heredoc_handler(int code);
 
 void expansion(AstNode *root, const Shell *shell);
 void stripping(AstNode *root);
+void word_splitting(AstNode *root);
 
 void execute_command(AstNode *root, Shell *shell);
 void read_heredocs(StringBuffer *sb, AstNode *root);

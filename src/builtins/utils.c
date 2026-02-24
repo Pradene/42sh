@@ -30,7 +30,7 @@ bool is_builtin(const char *command) {
   return false;
 }
 
-void exec_builtin(AstNode *node, HashTable *env) {
+void exec_builtin(AstNode *node, Shell *shell) {
   if (!node || node->type != NODE_COMMAND) {
     return;
   }
@@ -42,7 +42,7 @@ void exec_builtin(AstNode *node, HashTable *env) {
 
   for (int i = 0; builtins[i].name; ++i) {
     if (!strcmp(command, builtins[i].name)) {
-      builtins[i].fn(node, env);
+      builtins[i].fn(node, shell);
       return;
     }
   }

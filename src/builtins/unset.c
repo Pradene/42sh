@@ -2,9 +2,9 @@
 #include "env.h"
 #include "vec.h"
 
-void builtin_unset(AstNode *node, HashTable *env) {
+void builtin_unset(AstNode *node, Shell *shell) {
   for (size_t i = 1; i < vec_size(&node->command.args); ++i) {
     char *name = node->command.args.data[i];
-    env_unset(env, name);
+    env_unset(&shell->environment, name);
   }
 }

@@ -1,16 +1,17 @@
 #include "env.h"
 #include "ast.h"
 #include "vec.h"
+#include "builtin.h"
 
 #include <stdio.h>
 #include <ctype.h>
 
-void builtin_export(AstNode *node, HashTable *env) {
+void builtin_export(AstNode *node, Shell *shell) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
   if (argc == 1) {
-    env_print(env);
+    env_print(&shell->environment);
     return;
   }
 
@@ -36,7 +37,7 @@ void builtin_export(AstNode *node, HashTable *env) {
         continue;
       }
 
-      env_set(env, key, value);
+      env_set(&shell->environment, key, value);
 
       free(key);
       free(value);

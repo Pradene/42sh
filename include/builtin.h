@@ -3,19 +3,20 @@
 #include "ast.h"
 #include "env.h"
 #include "ht.h"
+#include "42sh.h"
 
 typedef struct {
   const char *name;
-  void (*fn)(AstNode *, HashTable *);
+  void (*fn)(AstNode *, Shell *);
 } Builtin;
 
 bool is_builtin(const char *cmd);
-void exec_builtin(AstNode *node, HashTable *env);
+void exec_builtin(AstNode *node, Shell *shell);
 
-void builtin_exit(AstNode *node, HashTable *env);
-void builtin_export(AstNode *node, HashTable *env);
-void builtin_type(AstNode *node, HashTable *env);
-void builtin_echo(AstNode *node, HashTable *env);
-void builtin_cd(AstNode *node, HashTable *env);
-void builtin_unset(AstNode *node, HashTable *env);
-void builtin_alias(AstNode *node, HashTable *env);
+void builtin_exit(AstNode *node, Shell *shell);
+void builtin_export(AstNode *node, Shell *shell);
+void builtin_type(AstNode *node, Shell *shell);
+void builtin_echo(AstNode *node, Shell *shell);
+void builtin_cd(AstNode *node, Shell *shell);
+void builtin_unset(AstNode *node, Shell *shell);
+void builtin_alias(AstNode *node, Shell *shell);

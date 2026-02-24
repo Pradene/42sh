@@ -5,6 +5,7 @@
 #include "42sh.h"
 
 #include <ctype.h>
+#include <stdio.h>
 
 static const char *get_variable(const Shell *shell, const char *name) {
   char *v;
@@ -105,6 +106,22 @@ void expansion(AstNode *root, const Shell *shell) {
     return;
 
   case NODE_COMMAND:
+    if (root->command.args.size != 0) {
+      HashEntry *entry = ht_get(&shell->aliases, root->command.args.data[0]);
+      if (entry) {
+        char *alias_value = entry->value;
+        Arguments args = {0};
+        vec_push(&args, alias_value);
+        for (size_t i = 1; i < root->command.args.size; ++i) {
+          vec_push(&args, root->command.args.data[i]);
+        }
+        free(root->command.args.data);
+        root->command.args.data = args.data;
+        root->command.args.size = args.size;
+        root->command.args.capacity = args.capacity;
+      }
+    }
+
     vec_foreach(char *, arg, &root->command.args) {
       char *expanded = expand(*arg, shell);
       if (expanded) {

@@ -1,6 +1,7 @@
 #include "ast.h"
 #include "vec.h"
 #include "env.h"
+#include "builtin.h"
 
 #include <unistd.h>
 #include <ctype.h>
@@ -24,8 +25,8 @@ static int is_numeric(const char *s) {
   return true;
 }
 
-void builtin_exit(AstNode *node, HashTable *env) {
-  (void)env;
+void builtin_exit(AstNode *node, Shell *shell) {
+  (void)shell;
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
@@ -49,7 +50,7 @@ void builtin_exit(AstNode *node, HashTable *env) {
       exit(2);
     }
 
-    exit((unsigned char)value);
+    exit((uint8_t)value);
   }
 
   exit(0);

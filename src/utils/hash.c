@@ -75,6 +75,10 @@ bool ht_contains(const HashTable* ht, const char *key) {
 }
 
 HashEntry *ht_get(const HashTable *ht, const char *key) {
+  if (!ht || ht->capacity == 0) {
+    return NULL;
+  }
+
   uint32_t hash = djb2((const unsigned char *)key) % ht->capacity;
   HashEntry *entry = ht->buckets[hash];
   while (entry) {

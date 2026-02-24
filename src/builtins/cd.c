@@ -1,6 +1,7 @@
 #include "ast.h"
 #include "env.h"
 #include "vec.h"
+#include "builtin.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -8,40 +9,45 @@
 
 #define MAX_PATH 4096
 
-void builtin_cd(AstNode *node, HashTable *env) {
+void builtin_cd(AstNode *node, Shell *shell) {
   char oldpwd[MAX_PATH];
   char pwd[MAX_PATH];
 
   if (vec_size(&node->command.args) > 2) {
+    shell->status = 1;
     return;
   }
 
   char *path = NULL;
   if (vec_size(&node->command.args) == 1) {
-    char *variable = env_find(env, "HOME");
+    char *variable = env_find(&shell->environment, "HOME");
     path = variable;
   } else {
     path = node->command.args.data[1];
     if (!strcmp("-", path)) {
-      char *variable = env_find(env, "OLDPWD");
+      char *variable = env_find(&shell->environment, "OLDPWD");
       path = variable;
     }
   }
 
   if (!path) {
+    shell->status = 1;
     return;
   }
 
   if (!getcwd(oldpwd, MAX_PATH)) {
+    shell->status = 2;
     return;
   }
   if (chdir(path) == -1) {
+    shell->status = 2;
     return;
   }
   if (!getcwd(pwd, MAX_PATH)) {
+    shell->status = 2;
     return;
   }
 
-  env_set(env, "OLDPWD", oldpwd);
-  env_set(env, "PWD", pwd);
+  env_set(&shell->environment, "OLDPWD", oldpwd);
+  env_set(&shell->environment, "PWD", pwd);
 }
