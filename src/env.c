@@ -2,8 +2,16 @@
 #include "vec.h"
 #include "utils.h"
 #include "ht.h"
+#include "42sh.h"
 
 #include <stdio.h>
+
+
+void env_variable_free(void *value) {
+  Variable *variable = (Variable *)value;
+  free(variable->content);
+  free(variable);
+}
 
 StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
   for (size_t i = 0; envp[i]; ++i) {
@@ -13,18 +21,20 @@ StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
     } else {
       size_t key_length = equal - envp[i];
       char *key = strndup(envp[i], key_length);
-      char *value = strdup(equal + 1);
-      
-      if (strcmp(value, "") == 0) {
+      char *content = strdup(equal + 1);
+      if (strcmp(content, "") == 0) {
         free(key);
-        free(value);
+        free(content);
         continue;
       }
-
+      
+      Variable *value = (Variable *)malloc(sizeof(Variable));
+      value->content = content;
+      value->exported = true;
+      value->readonly = false;
       ht_insert(env, key, value);
       
       free(key);
-      free(value);
     }
   }
 
@@ -41,9 +51,9 @@ char **env_to_cstr_array(const HashTable *env) {
   for (size_t i = 0; i < env->capacity; ++i) {
     HashEntry *node = env->buckets[i];
     while (node) {
-      size_t len = strlen(node->key) + strlen((char *)node->value) + 2;
+      size_t len = strlen(node->key) + strlen((char *)((Variable *)(node->value))->content) + 2;
       array[index] = malloc(len);
-      snprintf(array[index], len, "%s=%s", node->key, (char *)node->value);
+      snprintf(array[index], len, "%s=%s", node->key, (char *)((Variable *)(node->value))->content);
       index++;
       node = node->next;
     }
@@ -60,19 +70,14 @@ void env_free(HashTable *env) {
 
 char *env_find(const HashTable *env, const char *name) {
   HashEntry *entry = ht_get(env, name);
-  return entry ? (char *)entry->value : NULL;
+  return entry ? (char *)((Variable *)(entry->value))->content : NULL;
 }
 
-StatusCode env_set(HashTable *env, const char *name, const char *value) {
+StatusCode env_set(HashTable *env, const char *name, void *value) {
   HashEntry *entry = ht_get(env, name);
   if (entry) {
-    char *new = strdup(value);
-    if (!new) {
-      return MEM_ALLOCATION_FAILED;
-    }
-
-    free(entry->value);
-    entry->value = new;
+    env->free(entry->value);
+    entry->value = value;
   } else {
     ht_insert(env, name, (void *)value);
   }
@@ -88,7 +93,7 @@ void env_print(const HashTable *env) {
   for (size_t i = 0; i < env->capacity; ++i) {
     HashEntry *entry = env->buckets[i];
     while (entry) {
-      printf("%s=%s\n", entry->key, (char *)entry->value);
+      printf("%s=%s\n", entry->key, (char *)((Variable *)(entry->value))->content);
       entry = entry->next;
     }
   }

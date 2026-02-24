@@ -86,7 +86,21 @@ int main(int argc, char **argv, char **envp) {
   (void)argc;
   (void)argv;
 
-  Shell shell = {0};
+  Shell shell = {
+    .environment = (HashTable){
+      .buckets = NULL,
+      .size = 0,
+      .capacity = 0,
+      .free = env_variable_free
+    },
+    .aliases = (HashTable){
+      .buckets = NULL,
+      .size = 0,
+      .capacity = 0,
+      .free = free
+    },
+    .status = 0,
+  };
 
   env_from_cstr_array(&shell.environment, (const char **)envp);
 

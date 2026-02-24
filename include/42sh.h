@@ -8,8 +8,8 @@
 #include "ht.h"
 
 typedef struct {
-  HashTable environment;
-  HashTable aliases;
+  HashTable environment; // value -> Variable *
+  HashTable aliases;     // value -> char *
   uint8_t   status;
 } Shell;
 

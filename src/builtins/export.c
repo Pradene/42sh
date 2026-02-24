@@ -29,18 +29,20 @@ void builtin_export(AstNode *node, Shell *shell) {
     } else {
       size_t key_length = equal - arg;
       char *key = strndup(arg, key_length);
-      char *value = strdup(equal + 1);
-      
-      if (strcmp(value, "") == 0) {
+      char *content = strdup(equal + 1);
+      if (strcmp(content, "") == 0) {
         free(key);
-        free(value);
+        free(content);
         continue;
       }
 
+      Variable *value = (Variable *)malloc(sizeof(Variable));
+      value->content = content;
+      value->exported = true;
+      value->readonly = false;
       env_set(&shell->environment, key, value);
 
       free(key);
-      free(value);
-    } 
+    }
   }
 }

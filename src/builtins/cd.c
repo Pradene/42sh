@@ -10,13 +10,13 @@
 #define MAX_PATH 4096
 
 void builtin_cd(AstNode *node, Shell *shell) {
-  char oldpwd[MAX_PATH];
-  char pwd[MAX_PATH];
-
   if (vec_size(&node->command.args) > 2) {
     shell->status = 1;
     return;
   }
+
+  char *old_path = malloc(sizeof(char) * MAX_PATH);
+  char *new_path = malloc(sizeof(char) * MAX_PATH);
 
   char *path = NULL;
   if (vec_size(&node->command.args) == 1) {
@@ -35,7 +35,7 @@ void builtin_cd(AstNode *node, Shell *shell) {
     return;
   }
 
-  if (!getcwd(oldpwd, MAX_PATH)) {
+  if (!getcwd(old_path, MAX_PATH)) {
     shell->status = 2;
     return;
   }
@@ -43,11 +43,20 @@ void builtin_cd(AstNode *node, Shell *shell) {
     shell->status = 2;
     return;
   }
-  if (!getcwd(pwd, MAX_PATH)) {
+  if (!getcwd(new_path, MAX_PATH)) {
     shell->status = 2;
     return;
   }
 
-  env_set(&shell->environment, "OLDPWD", oldpwd);
-  env_set(&shell->environment, "PWD", pwd);
+  Variable *old = (Variable *)malloc(sizeof(Variable));
+  old->content = old_path;
+  old->exported = true;
+  old->readonly = false;
+  env_set(&shell->environment, "OLDPWD", old);
+  
+  Variable *new = (Variable *)malloc(sizeof(Variable));
+  new->content = new_path;
+  new->exported = true;
+  new->readonly = false;
+  env_set(&shell->environment, "PWD", new);
 }
