@@ -5,6 +5,8 @@
 
 #include <unistd.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
 
 static int is_numeric(const char *s) {
@@ -30,28 +32,35 @@ void builtin_exit(AstNode *node, Shell *shell) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
-  write(1, "exit\n", 5);
+  fprintf(stderr, "exit\n");
   
   if (argc > 2) {
-    write(2, "exit: too many arguments\n", 26);
+    fprintf(stderr, "exit: too many arguments\n");
     return;
   }
 
+  ht_clear(&shell->environment);
+  ht_clear(&shell->aliases);
+  
   if (argc == 2) {
     if (!is_numeric(args[1])) {
-      write(2, "exit: numeric argument required\n", 32);
+      fprintf(stderr, "exit: numeric argument required\n");
+      ast_free(shell->command);
       exit(2);
     }
 
     errno = 0;
     long long value = strtoll(args[1], NULL, 10);
     if (errno == ERANGE) {
-      write(2, "exit: numeric argument required\n", 32);
+      fprintf(stderr, "exit: numeric argument required\n");
+      ast_free(shell->command);
       exit(2);
     }
 
+    ast_free(shell->command);
     exit((uint8_t)value);
   }
 
+  ast_free(shell->command);
   exit(0);
 }
