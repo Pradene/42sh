@@ -20,3 +20,4 @@ void builtin_echo(AstNode *node, Shell *shell);
 void builtin_cd(AstNode *node, Shell *shell);
 void builtin_unset(AstNode *node, Shell *shell);
 void builtin_alias(AstNode *node, Shell *shell);
+void builtin_unalias(AstNode *node, Shell *shell);

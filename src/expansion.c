@@ -109,7 +109,7 @@ void expansion(AstNode *root, const Shell *shell) {
     if (root->command.args.size != 0) {
       HashEntry *entry = ht_get(&shell->aliases, root->command.args.data[0]);
       if (entry) {
-        char *alias_value = entry->value;
+        char *alias_value = strdup(entry->value);
         Arguments args = {0};
         vec_push(&args, alias_value);
         for (size_t i = 1; i < root->command.args.size; ++i) {

@@ -7,6 +7,7 @@
 
 static Builtin builtins[] = {
   { "alias", builtin_alias },
+  { "unalias", builtin_unalias },
   { "echo", builtin_echo },
   { "exit", builtin_exit },
   { "export", builtin_export },
