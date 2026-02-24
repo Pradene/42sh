@@ -64,10 +64,6 @@ char **env_to_cstr_array(const HashTable *env) {
   return array;
 }
 
-void env_free(HashTable *env) {
-  ht_clear(env);
-}
-
 char *env_find(const HashTable *env, const char *name) {
   HashEntry *entry = ht_get(env, name);
   return entry ? (char *)((Variable *)(entry->value))->content : NULL;

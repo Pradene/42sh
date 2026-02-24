@@ -143,6 +143,9 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     char *path = find_command_path(args[0], paths);
     if (!path) {
       fprintf(stderr, "Command not found: %s\n", args[0]);
+      ast_free(shell->command);
+      ht_clear(&shell->environment);
+      ht_clear(&shell->aliases);
       exit(EXIT_FAILURE);
     }
 
@@ -163,7 +166,6 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     }
 
     execve(path, args, envp);
-
     perror("execve");
 
     for (size_t i = 0; envp[i]; ++i) {
@@ -171,6 +173,9 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     }
     free(envp);
     free(path);
+    ast_free(shell->command);
+    ht_clear(&shell->environment);
+    ht_clear(&shell->aliases);
 
     exit(EXIT_FAILURE);
   } else {
@@ -210,8 +215,8 @@ void execute_pipe(AstNode *root, Shell *shell) {
     execute_command(root->operator.left, shell);
     int status = g_status;
 
-    ast_free(root);
-    env_free(&shell->environment);
+    ast_free(shell->command);
+    ht_clear(&shell->environment);
     ht_clear(&shell->aliases);
 
     exit(status);
@@ -232,8 +237,8 @@ void execute_pipe(AstNode *root, Shell *shell) {
     execute_command(root->operator.right, shell);
     int status = g_status;
 
-    ast_free(root);
-    env_free(&shell->environment);
+    ast_free(shell->command);
+    ht_clear(&shell->environment);
     ht_clear(&shell->aliases);
 
     exit(status);
@@ -270,7 +275,7 @@ void execute_subshell(AstNode *node, Shell *shell) {
     execute_command(node->group.inner, shell);
 
     ast_free(node);
-    env_free(&shell->environment);
+    ht_clear(&shell->environment);
     ht_clear(&shell->aliases);
 
     exit(g_status);

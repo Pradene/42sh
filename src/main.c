@@ -118,20 +118,21 @@ int main(int argc, char **argv, char **envp) {
     sa.sa_handler = sigint_handler;
     sigaction(SIGINT, &sa, NULL);
 
-    AstNode *root = get_command();
-    if (!root) {
+    shell.command = get_command();
+    if (!shell.command) {
       continue;
     }
 
     sa.sa_handler = SIG_IGN;
     sigaction(SIGINT, &sa, NULL);
 
-    execute_command(root, &shell);
+    execute_command(shell.command, &shell);
 
-    ast_free(root);
+    ast_free(shell.command);
+    shell.command = NULL;
   }
 
-  env_free(&shell.environment);
+  ht_clear(&shell.environment);
 
   return 0;
 }

@@ -12,7 +12,6 @@ typedef struct {
 } Variable;
 
 void env_variable_free(void *value);
-void env_free(HashTable *env);
 StatusCode env_from_cstr_array(HashTable *env, const char **envp);
 char **env_to_cstr_array(const HashTable *env);
 char *env_find(const HashTable *env, const char *name);

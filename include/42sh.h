@@ -10,6 +10,7 @@
 typedef struct {
   HashTable environment; // value -> Variable *
   HashTable aliases;     // value -> char *
+  AstNode   *command;
   uint8_t   status;
 } Shell;
 
