@@ -118,8 +118,6 @@ int main(int argc, char **argv, char **envp) {
   }
 
   env_free(&shell.environment);
-  env_free(&shell.local);
-  env_free(&shell.aliases);
 
   return 0;
 }

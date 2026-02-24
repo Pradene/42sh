@@ -7,15 +7,25 @@
 
 StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
   for (size_t i = 0; envp[i]; ++i) {
-    char **parts = split_at(envp[i], '=');
-    if (!parts || !parts[0] || !parts[1]) {
-      return MEM_ALLOCATION_FAILED;
-    }
+    char *equal = strchr(envp[i], '=');
+    if (!equal) {
+      continue;
+    } else {
+      size_t key_length = equal - envp[i];
+      char *key = strndup(envp[i], key_length);
+      char *value = strdup(equal + 1);
+      
+      if (strcmp(value, "") == 0) {
+        free(key);
+        free(value);
+        continue;
+      }
 
-    ht_insert(env, parts[0], parts[1]);
-    free(parts[0]);
-    free(parts[1]);
-    free(parts);
+      ht_insert(env, key, value);
+      
+      free(key);
+      free(value);
+    }
   }
 
   return OK;

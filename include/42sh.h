@@ -9,8 +9,6 @@
 
 typedef struct {
   HashTable environment;
-  HashTable local;
-  HashTable aliases;
 } Shell;
 
 void sigint_handler(int code);
