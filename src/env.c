@@ -76,7 +76,10 @@ void env_print(const HashTable *env) {
   for (size_t i = 0; i < env->capacity; ++i) {
     HashEntry *entry = env->buckets[i];
     while (entry) {
-      printf("%s=%s\n", entry->key, (char *)((Variable *)(entry->value))->content);
+      Variable *v = (Variable *)entry->value;
+      if (v && v->exported) {
+        printf("%s=%s\n", entry->key, v->content);
+      }
       entry = entry->next;
     }
   }
