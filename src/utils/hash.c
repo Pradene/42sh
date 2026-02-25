@@ -23,9 +23,9 @@ static bool ht_resize(HashTable *ht, size_t new_capacity) {
 
     while (entry) {
       HashEntry *next = entry->next;
-      uint64_t index = djb2((unsigned char *)entry->key) % new_capacity;
-      entry->next = new_buckets[index];
-      new_buckets[index] = entry;
+      uint64_t hash = djb2((unsigned char *)entry->key) % new_capacity;
+      entry->next = new_buckets[hash];
+      new_buckets[hash] = entry;
       entry = next;
     }
   }

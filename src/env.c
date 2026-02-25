@@ -47,13 +47,16 @@ char **env_to_cstr_array(const HashTable *env) {
 
   size_t index = 0;
   for (size_t i = 0; i < env->capacity; ++i) {
-    HashEntry *node = env->buckets[i];
-    while (node) {
-      size_t len = strlen(node->key) + strlen((char *)((Variable *)(node->value))->content) + 2;
-      array[index] = malloc(len);
-      snprintf(array[index], len, "%s=%s", node->key, (char *)((Variable *)(node->value))->content);
-      index++;
-      node = node->next;
+    HashEntry *entry = env->buckets[i];
+    while (entry) {
+      Variable *v = (Variable *)entry->value;
+      if (v && v->exported) {
+        size_t length = strlen(entry->key) + strlen((char *)v->content) + 2;
+        array[index] = malloc(sizeof(char) * length);
+        snprintf(array[index], length, "%s=%s", entry->key, (char *)v->content);
+        ++index;
+      }
+      entry = entry->next;
     }
   }
 
