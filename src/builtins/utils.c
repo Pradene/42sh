@@ -13,6 +13,7 @@ static Builtin builtins[] = {
   { "export", builtin_export },
   { "type", builtin_type },
   { "cd", builtin_cd },
+  { "set", builtin_set },
   { "unset", builtin_unset },
   { NULL, NULL }
 };
