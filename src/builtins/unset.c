@@ -2,9 +2,18 @@
 #include "env.h"
 #include "vec.h"
 
+#include <stdio.h>
+
 void builtin_unset(AstNode *node, Shell *shell) {
-  for (size_t i = 1; i < vec_size(&node->command.args); ++i) {
-    char *name = node->command.args.data[i];
+  size_t argc = vec_size(&node->command.args);
+  if (argc == 1) {
+    fprintf(stderr, "unset: usage: unset name [name ...]\n");
+    return;
+  }
+
+  char **args = node->command.args.data;
+  for (size_t i = 1; i < argc; ++i) {
+    char *name = args[i];
     env_unset(&shell->environment, name);
   }
 }

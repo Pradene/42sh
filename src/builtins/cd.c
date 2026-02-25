@@ -10,7 +10,8 @@
 #define MAX_PATH 4096
 
 void builtin_cd(AstNode *node, Shell *shell) {
-  if (vec_size(&node->command.args) > 2) {
+  size_t argc = vec_size(&node->command.args);
+  if (argc > 2) {
     shell->status = 1;
     return;
   }
@@ -19,7 +20,7 @@ void builtin_cd(AstNode *node, Shell *shell) {
   char *new_path = malloc(sizeof(char) * MAX_PATH);
 
   char *path = NULL;
-  if (vec_size(&node->command.args) == 1) {
+  if (argc == 1) {
     char *variable = env_find(&shell->environment, "HOME");
     path = variable;
   } else {

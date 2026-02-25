@@ -7,18 +7,21 @@
 #include <string.h>
 
 void builtin_unalias(AstNode *node, Shell *shell) {
-  if (node->command.args.size == 1) {
+  size_t argc = vec_size(&node->command.args);
+  if (argc == 1) {
     fprintf(stderr, "unalias: usage: unalias name [name ...]\n");
     return;
   }
 
-  for (size_t i = 1; i < vec_size(&node->command.args); ++i) {
-    ht_remove(&shell->aliases, node->command.args.data[i]);
+  char **args = node->command.args.data;
+  for (size_t i = 1; i < argc; ++i) {
+    ht_remove(&shell->aliases, args[i]);
   }
 }
 
 void builtin_alias(AstNode *node, Shell *shell) {
-  if (node->command.args.size == 1) {
+  size_t argc = vec_size(&node->command.args);
+  if (argc == 1) {
     for (size_t i = 0; i < shell->aliases.capacity; ++i) {
       HashEntry *entry = shell->aliases.buckets[i];
 
@@ -31,18 +34,19 @@ void builtin_alias(AstNode *node, Shell *shell) {
     }
     return;
   }
-
-  for (size_t i = 1; i < vec_size(&node->command.args); ++i) {
-    char *equal = strchr(node->command.args.data[i], '=');
+  
+  char **args = node->command.args.data;
+  for (size_t i = 1; i < argc; ++i) {
+    char *equal = strchr(args[i], '=');
     if (!equal) {
-      HashEntry *entry = ht_get(&shell->aliases, node->command.args.data[i]);
+      HashEntry *entry = ht_get(&shell->aliases, args[i]);
       if (entry) {
         char *name = entry->key;
         char *value = entry->value;
         printf("%s='%s'\n", name, value);
       }
     } else {
-      char *name = strndup(node->command.args.data[i], equal - node->command.args.data[i]);
+      char *name = strndup(args[i], equal - args[i]);
       char *value = strdup(equal + 1);
       ht_insert(&shell->aliases, name, value);
       printf("alias %s='%s'\n", name, value);
