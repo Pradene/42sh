@@ -3,7 +3,6 @@
 #include "vec.h"
 #include "42sh.h"
 
-#include <readline/readline.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>

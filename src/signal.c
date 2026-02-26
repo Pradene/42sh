@@ -1,4 +1,3 @@
-#include <readline/readline.h>
 #include <unistd.h>
 
 void sigint_handler(int sig) {

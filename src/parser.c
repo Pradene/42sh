@@ -47,12 +47,14 @@ static bool parser_match(ParserState *state, TokenType type) {
 }
 
 static bool is_redirect_token(ParserState *state) {
-  return parser_match(state, TOKEN_REDIRECT_IN) ||
-         parser_match(state, TOKEN_REDIRECT_OUT) ||
-         parser_match(state, TOKEN_REDIRECT_APPEND) ||
-         parser_match(state, TOKEN_HEREDOC) ||
-         parser_match(state, TOKEN_REDIRECT_IN_FD) ||
-         parser_match(state, TOKEN_REDIRECT_OUT_FD);
+  return (
+    parser_match(state, TOKEN_REDIRECT_IN) ||
+    parser_match(state, TOKEN_REDIRECT_OUT) ||
+    parser_match(state, TOKEN_REDIRECT_APPEND) ||
+    parser_match(state, TOKEN_HEREDOC) ||
+    parser_match(state, TOKEN_REDIRECT_IN_FD) ||
+    parser_match(state, TOKEN_REDIRECT_OUT_FD)
+  );
 }
 
 static bool is_valid_fd(const char *s, int *fd) {
@@ -249,9 +251,7 @@ static StatusCode parse_pipeline(ParserState *state, AstNode **root) {
     status = parse_group(state, &right);
     if (status != OK) {
       ast_free(left);
-      return parser_match(state, TOKEN_EOF) ?
-        INCOMPLETE_INPUT :
-        UNEXPECTED_TOKEN;
+      return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT : UNEXPECTED_TOKEN;
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
@@ -294,9 +294,7 @@ static StatusCode parse_logical(ParserState *state, AstNode **root) {
     status = parse_pipeline(state, &right);
     if (status != OK) {
       ast_free(left);
-      return parser_match(state, TOKEN_EOF) ?
-        INCOMPLETE_INPUT :
-        UNEXPECTED_TOKEN;
+      return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT : UNEXPECTED_TOKEN;
     }
 
     AstNode *node = (AstNode *)malloc(sizeof(AstNode));
@@ -323,9 +321,7 @@ static StatusCode parse_sequence(ParserState *state, AstNode **root) {
     return status;
   }
 
-  while (parser_match(state, TOKEN_OPERAND) ||
-         parser_match(state, TOKEN_SEMICOLON) ||
-         parser_match(state, TOKEN_NEWLINE)) {
+  while (parser_match(state, TOKEN_OPERAND) || parser_match(state, TOKEN_SEMICOLON) || parser_match(state, TOKEN_NEWLINE)) {
     Token sep_token;
     StatusCode status = parser_peek(state, &sep_token);
     if (status != OK) {
@@ -346,9 +342,12 @@ static StatusCode parse_sequence(ParserState *state, AstNode **root) {
     parser_advance(state);
 
     AstNode *right = NULL;
-    if (!parser_match(state, TOKEN_RPAREN) &&
-        !parser_match(state, TOKEN_NEWLINE) &&
-        !parser_match(state, TOKEN_RBRACE) && !parser_match(state, TOKEN_EOF)) {
+    if (
+      !parser_match(state, TOKEN_RPAREN) &&
+      !parser_match(state, TOKEN_NEWLINE) &&
+      !parser_match(state, TOKEN_RBRACE) &&
+      !parser_match(state, TOKEN_EOF)
+    ) {
       status = parse_logical(state, &right);
       if (status != OK) {
         ast_free(left);

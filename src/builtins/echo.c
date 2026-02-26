@@ -77,7 +77,7 @@ void builtin_echo(AstNode *node, Shell *shell) {
     char *output = NULL;
 
     if (interpret) {
-      output = interpret_escapes(output);
+      output = interpret_escapes(args[i]);
     } else {
       output = strdup(args[i]);
     }

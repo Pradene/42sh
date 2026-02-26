@@ -2,4 +2,3 @@
 -Wextra
 -Werror
 -Iinclude
--lreadline

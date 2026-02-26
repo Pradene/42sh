@@ -12,6 +12,7 @@ typedef struct {
   HashTable aliases;     // value -> char *
   AstNode   *command;
   uint8_t   status;
+  bool      interactive;
 } Shell;
 
 void sigint_handler(int code);

@@ -3,13 +3,11 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-extern bool is_interactive;
-
 char *readline(const char *prompt) {
   StringBuffer sb = {0};
   char c;
 
-  if (is_interactive && prompt) {
+  if (prompt) {
     write(STDERR_FILENO, prompt, strlen(prompt));
   }
 
