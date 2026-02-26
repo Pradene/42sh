@@ -4,7 +4,7 @@
 
 #include <ctype.h>
 
-void word_splitting(AstNode *root) {
+void splitting(AstNode *root) {
   if (!root) {
     return;
   }

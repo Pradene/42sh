@@ -5,9 +5,10 @@
 #include "status.h"
 
 typedef struct {
-  LexState lex_state;
-  Token current_token;
-  bool token_ready;
+  char      *input;
+  size_t    position;
+  Token     current_token;
+  bool      token_ready;
 } ParserState;
 
 StatusCode parse(const char *input, AstNode **root);

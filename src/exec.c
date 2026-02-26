@@ -332,7 +332,7 @@ void execute_command(AstNode *root, Shell *shell) {
     return;
   case NODE_COMMAND:
     expansion(root, shell);
-    word_splitting(root);
+    splitting(root);
     stripping(root);
     execute_simple_command(root, shell);
     return;

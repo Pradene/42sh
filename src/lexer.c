@@ -6,8 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 
-const char *tokentype_str(const TokenType type) {
+const char *token_type_str(const TokenType type) {
   static const char *names[] = {
+    [TOKEN_ERROR] = "ERROR",
     [TOKEN_LPAREN] = "LPAREN",
     [TOKEN_RPAREN] = "RPAREN",
     [TOKEN_LBRACE] = "LBRACE",
@@ -42,7 +43,7 @@ static inline bool is_delimiter(char c) {
   return isspace(c) || strchr("|&;[](){}<>", c) != NULL;
 }
 
-StatusCode next_token(LexState *state, Token *token) {
+Token next_token(const char *s, size_t *i) {
   static const struct {
     const char *s;
     size_t length;
@@ -70,17 +71,13 @@ StatusCode next_token(LexState *state, Token *token) {
     {NULL, 0, 0}
   };
 
-  const char *s = state->input;
-  size_t *i = &state->position;
-
   while (s[*i]) {
     size_t start = *i;
 
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
-        *token = (Token){NULL, start, operators[j].type};
-        return OK;
+        return (Token){operators[j].type, *i, NULL};
       }
     }
 
@@ -104,7 +101,7 @@ StatusCode next_token(LexState *state, Token *token) {
           ++(*i);
         } else {
           sb_free(&sb);
-          return INCOMPLETE_INPUT;
+          return (Token){TOKEN_ERROR, *i, NULL};
         }
       } else if (s[*i] == '$') {
         sb_append_char(&sb, s[*i]);
@@ -121,7 +118,7 @@ StatusCode next_token(LexState *state, Token *token) {
             ++(*i);
           } else {
             sb_free(&sb);
-            return INCOMPLETE_INPUT;
+            return (Token){TOKEN_ERROR, *i, NULL};
           }
         } else {
           while (s[*i] && !is_delimiter(s[*i])) {
@@ -151,7 +148,7 @@ StatusCode next_token(LexState *state, Token *token) {
           ++(*i);
         } else {
           sb_free(&sb);
-          return INCOMPLETE_INPUT;
+          return (Token){TOKEN_ERROR, *i, NULL};
         }
       } else {
         sb_append_char(&sb, s[*i]);
@@ -160,10 +157,8 @@ StatusCode next_token(LexState *state, Token *token) {
     }
 
     char *word = sb_as_cstr(&sb);
-    *token = (Token){.s = word, .position = start, .type = TOKEN_WORD};
-    return OK;
+    return (Token){TOKEN_WORD, start, word};
   }
 
-  *token = (Token){.s = NULL, .position = *i, .type = TOKEN_EOF};
-  return OK;
+  return (Token){TOKEN_EOF, *i, NULL};
 }

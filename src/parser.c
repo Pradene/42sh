@@ -4,6 +4,8 @@
 #include "status.h"
 #include "vec.h"
 
+#include <stdio.h>
+
 static StatusCode parse_redir(ParserState *state, Redir *redir);
 static StatusCode parse_simple_command(ParserState *state, AstNode **root);
 static StatusCode parse_group(ParserState *state, AstNode **root);
@@ -13,9 +15,9 @@ static StatusCode parse_sequence(ParserState *state, AstNode **root);
 
 static StatusCode parser_peek(ParserState *state, Token *token) {
   if (!state->token_ready) {
-    StatusCode status = next_token(&state->lex_state, &state->current_token);
-    if (status != OK) {
-      return status;
+    state->current_token = next_token(state->input, &state->position);
+    if (state->current_token.type == TOKEN_ERROR) {
+      return INCOMPLETE_INPUT;
     }
     state->token_ready = true;
   }
@@ -25,9 +27,9 @@ static StatusCode parser_peek(ParserState *state, Token *token) {
 
 static StatusCode parser_advance(ParserState *state) {
   if (!state->token_ready) {
-    StatusCode status = next_token(&state->lex_state, &state->current_token);
-    if (status != OK) {
-      return status;
+    state->current_token = next_token(state->input, &state->position);
+    if (state->current_token.type == TOKEN_ERROR) {
+      return INCOMPLETE_INPUT;
     }
     state->token_ready = true;
     return OK;
@@ -378,10 +380,8 @@ StatusCode parse(const char *input, AstNode **root) {
   }
 
   ParserState state = {
-    .lex_state = {
-      .input = input,
-      .position = 0,
-    },
+    .input = (char *)input,
+    .position = 0,
     .current_token = {0},
     .token_ready = false,
   };
@@ -393,6 +393,9 @@ StatusCode parse(const char *input, AstNode **root) {
   }
 
   if (parser_match(&state, TOKEN_NEWLINE)) {
+    printf("Need to read heredoc\n");
+    parser_advance(&state);
+    // READ HEREDOCS
     *root = node;
     return OK;
   }

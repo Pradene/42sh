@@ -5,12 +5,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-typedef struct {
-  const char *input;
-  size_t position;
-} LexState;
-
 typedef enum {
+  TOKEN_ERROR,
   TOKEN_LPAREN,
   TOKEN_RPAREN,
   TOKEN_LBRACE,
@@ -35,9 +31,10 @@ typedef enum {
 } TokenType;
 
 typedef struct {
-  char *s;
-  size_t position;
   TokenType type;
+  size_t    position;
+  char      *s;
 } Token;
 
-StatusCode next_token(LexState *state, Token *token);
+const char *token_type_str(const TokenType type);
+Token next_token(const char *input, size_t *position);

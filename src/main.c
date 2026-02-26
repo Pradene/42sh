@@ -28,12 +28,6 @@ static int run_string(const char *input, Shell *shell) {
     return 2;
   }
 
-  if (has_heredocs(root)) {
-    StringBuffer sb = {0};
-    read_heredocs(&sb, root);
-    sb_free(&sb);
-  }
-
   shell->command = root;
   execute_command(root, shell);
   ast_free(root);
@@ -60,7 +54,6 @@ static int run_fd(int fd, const char *name, Shell *shell) {
   }
 
   StringBuffer acc = {0};
-  int exit_status = 0;
   size_t i = 0;
 
   while (content[i]) {
@@ -101,31 +94,24 @@ static int run_fd(int fd, const char *name, Shell *shell) {
 
     if (status != OK || !root) {
       fprintf(stderr, "42sh: %s: syntax error\n", name);
-      exit_status = 2;
+      shell->status = 2;
       continue;
-    }
-
-    if (has_heredocs(root)) {
-      StringBuffer hd_sb = {0};
-      read_heredocs(&hd_sb, root);
-      sb_free(&hd_sb);
     }
 
     shell->command = root;
     execute_command(root, shell);
     ast_free(root);
     shell->command = NULL;
-    exit_status = shell->status;
   }
 
   if (acc.size > 0) {
     fprintf(stderr, "42sh: %s: unexpected end of file\n", name);
     sb_free(&acc);
-    exit_status = 2;
+    shell->status = 2;
   }
 
   free(content);
-  return exit_status;
+  return shell->status;
 }
 
 static int run_file(const char *path, Shell *shell) {
@@ -163,7 +149,6 @@ static AstNode *get_command(void) {
 
     AstNode *root = NULL;
     StatusCode status = parse(sb_as_cstr(&sb), &root);
-
     if (status == INCOMPLETE_INPUT) {
       line = readline("> ");
       if (!line) {
@@ -178,10 +163,6 @@ static AstNode *get_command(void) {
     if (status != OK) {
       sb_free(&sb);
       return NULL;
-    }
-
-    if (has_heredocs(root)) {
-      read_heredocs(&sb, root);
     }
 
     sb_free(&sb);

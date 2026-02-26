@@ -17,11 +17,10 @@ char *readline(const char *prompt) {
       break;
     }
 
+    sb_append_char(&sb, c);
     if (c == '\n') {
       break;
     }
-
-    sb_append_char(&sb, c);
   }
 
   return sb_as_cstr(&sb);
