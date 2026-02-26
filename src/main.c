@@ -185,10 +185,10 @@ static void run_interactive(Shell *shell) {
     if (!shell->command) {
       continue;
     }
-
+    
     sa.sa_handler = SIG_IGN;
     sigaction(SIGINT, &sa, NULL);
-
+    
     execute_command(shell->command, shell);
     ast_free(shell->command);
     shell->command = NULL;

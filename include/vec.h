@@ -59,3 +59,5 @@
   } while (0)
 
 #define vec_foreach(Type, it, vec) for (Type *it = (vec)->data; it < (vec)->data + (vec)->size; ++it)
+
+#define vec_last(v) ((v)->data[(v)->size - 1])

@@ -5,6 +5,8 @@
 #include "vec.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 static StatusCode parse_redir(ParserState *state, Redir *redir);
 static StatusCode parse_simple_command(ParserState *state, AstNode **root);
@@ -71,39 +73,76 @@ static bool is_valid_fd(const char *s, int *fd) {
   return true;
 }
 
+static StatusCode read_heredoc(ParserState *state, Redir *redir) {
+  char template[] = "/tmp/heredoc_XXXXXX";
+  int fd = mkstemp(template);
+  if (fd < 0) {
+    return INCOMPLETE_INPUT;
+  }
+
+  unlink(template);
+
+  const char *delim = redir->target_path;
+  size_t delim_len = strlen(delim);
+
+  while (true) {
+    const char *line_start = state->input + state->position;
+    const char *newline = strchr(line_start, '\n');
+
+    if (!newline) {
+      close(fd);
+      return INCOMPLETE_INPUT;
+    }
+
+    size_t line_len = newline - line_start;
+    state->position += line_len + 1;
+
+    if (line_len == delim_len && strncmp(line_start, delim, delim_len) == 0) {
+      break;
+    }
+
+    write(fd, line_start, line_len);
+    write(fd, "\n", 1);
+  }
+
+  lseek(fd, 0, SEEK_SET);
+  free(redir->target_path);
+  redir->target_path = NULL;
+  redir->target_fd = fd;
+  return OK;
+}
+
+static StatusCode read_heredocs(ParserState *state) {
+  for (size_t i = 0; i < state->heredocs.size; i++) {
+    StatusCode status = read_heredoc(state, state->heredocs.data[i]);
+    if (status != OK) {
+      return status;
+    }
+  }
+  state->heredocs.size = 0;
+  return OK;
+}
+
 static StatusCode parse_redir(ParserState *state, Redir *redir) {
   if (!is_redirect_token(state)) {
     return UNEXPECTED_TOKEN;
   }
 
-  Token token;
-  StatusCode status = parser_peek(state, &token);
+  Token op_token;
+  StatusCode status = parser_peek(state, &op_token);
   if (status != OK) {
     return status;
   }
 
   RedirType type;
-  switch (token.type) {
-  case TOKEN_REDIRECT_IN:
-    type = REDIRECT_IN;
-    break;
-  case TOKEN_HEREDOC:
-    type = REDIRECT_HEREDOC;
-    break;
-  case TOKEN_REDIRECT_OUT:
-    type = REDIRECT_OUT;
-    break;
-  case TOKEN_REDIRECT_APPEND:
-    type = REDIRECT_APPEND;
-    break;
-  case TOKEN_REDIRECT_IN_FD:
-    type = REDIRECT_IN_FD;
-    break;
-  case TOKEN_REDIRECT_OUT_FD:
-    type = REDIRECT_OUT_FD;
-    break;
-  default:
-    return UNEXPECTED_TOKEN;
+  switch (op_token.type) {
+  case TOKEN_REDIRECT_IN:     type = REDIRECT_IN;      break;
+  case TOKEN_HEREDOC:         type = REDIRECT_HEREDOC; break;
+  case TOKEN_REDIRECT_OUT:    type = REDIRECT_OUT;     break;
+  case TOKEN_REDIRECT_APPEND: type = REDIRECT_APPEND;  break;
+  case TOKEN_REDIRECT_IN_FD:  type = REDIRECT_IN_FD;   break;
+  case TOKEN_REDIRECT_OUT_FD: type = REDIRECT_OUT_FD;  break;
+  default:                    return UNEXPECTED_TOKEN;
   }
 
   parser_advance(state);
@@ -112,7 +151,8 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
     return UNEXPECTED_TOKEN;
   }
 
-  status = parser_peek(state, &token);
+  Token word_token;
+  status = parser_peek(state, &word_token);
   if (status != OK) {
     return status;
   }
@@ -120,16 +160,16 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
   redir->type = type;
 
   if (type == REDIRECT_IN_FD || type == REDIRECT_OUT_FD) {
-    if (!is_valid_fd(token.s, &redir->target_fd)) {
+    if (!is_valid_fd(word_token.s, &redir->target_fd)) {
       return UNEXPECTED_TOKEN;
     }
     redir->target_path = NULL;
   } else {
-    redir->target_path = strdup(token.s);
+    redir->target_fd = -1;
+    redir->target_path = strdup(word_token.s);
     if (!redir->target_path) {
       return MEM_ALLOCATION_FAILED;
     }
-    redir->target_fd = -1;
   }
 
   parser_advance(state);
@@ -170,6 +210,13 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
         return status;
       }
       vec_push(&node->command.redirs, redir);
+      if (redir.type == REDIRECT_HEREDOC) {
+        vec_push(&state->heredocs, &vec_last(&node->command.redirs));
+        if (status != OK) {
+          ast_free(node);
+          return status;
+        }
+      }
     } else {
       break;
     }
@@ -233,6 +280,13 @@ static StatusCode parse_group(ParserState *state, AstNode **root) {
       return status;
     }
     vec_push(&node->group.redirs, redir);
+    if (redir.type == REDIRECT_HEREDOC) {
+      vec_push(&state->heredocs, &vec_last(&node->command.redirs));
+      if (status != OK) {
+        ast_free(node);
+        return status;
+      }
+    }
   }
 
   *root = node;
@@ -384,6 +438,7 @@ StatusCode parse(const char *input, AstNode **root) {
     .position = 0,
     .current_token = {0},
     .token_ready = false,
+    .heredocs = {0}
   };
 
   AstNode *node = NULL;
@@ -393,9 +448,12 @@ StatusCode parse(const char *input, AstNode **root) {
   }
 
   if (parser_match(&state, TOKEN_NEWLINE)) {
-    printf("Need to read heredoc\n");
     parser_advance(&state);
-    // READ HEREDOCS
+    StatusCode ds = read_heredocs(&state);
+    if (ds != OK) {
+      ast_free(node);
+      return ds;
+    }
     *root = node;
     return OK;
   }

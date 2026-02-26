@@ -23,7 +23,6 @@ void stripping(AstNode *root);
 void splitting(AstNode *root);
 
 void execute_command(AstNode *root, Shell *shell);
-void read_heredocs(StringBuffer *sb, AstNode *root);
 
 char *find_command_path(const char *cmd, const char *path);
 
