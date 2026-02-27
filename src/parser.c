@@ -106,7 +106,8 @@ static StatusCode read_heredoc(ParserState *state, Redir *redir) {
   }
 
   lseek(fd, 0, SEEK_SET);
-  free(redir->path);
+  free(redir->delimiter);
+  redir->delimiter = NULL;
   redir->path = NULL;
   redir->fd = fd;
   return OK;
@@ -119,6 +120,7 @@ static StatusCode read_heredocs(ParserState *state) {
       return status;
     }
   }
+  free(state->heredocs.data);
   state->heredocs.size = 0;
   return OK;
 }
@@ -163,8 +165,13 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
     if (!is_valid_fd(word_token.s, &redir->fd)) {
       return UNEXPECTED_TOKEN;
     }
+  } else if (type == REDIRECT_HEREDOC) {
+    redir->delimiter = word_token.s;
+    if (!redir->delimiter) {
+      return MEM_ALLOCATION_FAILED;
+    }
   } else {
-    redir->path = strdup(word_token.s);
+    redir->path = word_token.s;
     if (!redir->path) {
       return MEM_ALLOCATION_FAILED;
     }
@@ -434,6 +441,10 @@ StatusCode parse(const char *input, AstNode **root) {
   AstNode *node = NULL;
   StatusCode status = parse_sequence(&state, &node);
   if (status != OK) {
+    vec_foreach(Redir *, heredoc, &state.heredocs) {
+      free((*heredoc)->delimiter);
+    }
+    vec_free(&state.heredocs);
     return status;
   }
 
@@ -441,6 +452,10 @@ StatusCode parse(const char *input, AstNode **root) {
     parser_advance(&state);
     StatusCode ds = read_heredocs(&state);
     if (ds != OK) {
+      vec_foreach(Redir *, heredoc, &state.heredocs) {
+        free((*heredoc)->delimiter);
+      }
+      vec_free(&state.heredocs);
       ast_free(node);
       return ds;
     }
@@ -450,9 +465,17 @@ StatusCode parse(const char *input, AstNode **root) {
 
   if (!parser_match(&state, TOKEN_EOF)) {
     ast_free(node);
+    vec_foreach(Redir *, heredoc, &state.heredocs) {
+      free((*heredoc)->delimiter);
+    }
+    vec_free(&state.heredocs);
     return UNEXPECTED_TOKEN;
   }
 
+  vec_foreach(Redir *, heredoc, &state.heredocs) {
+    free((*heredoc)->delimiter);
+  }
+  vec_free(&state.heredocs);
   *root = node;
   return OK;
 }

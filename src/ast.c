@@ -20,7 +20,11 @@ void ast_free(AstNode *root) {
     break;
   case NODE_COMMAND:
     vec_foreach(Redir, redir, &root->command.redirs) {
-      if (redir->type != REDIRECT_IN_FD && redir->type != REDIRECT_OUT_FD && redir->type != REDIRECT_HEREDOC) {
+      if (
+        redir->type == REDIRECT_IN ||
+        redir->type == REDIRECT_OUT ||
+        redir->type == REDIRECT_APPEND
+      ) {
         free(redir->path);
       }
     }
@@ -34,7 +38,11 @@ void ast_free(AstNode *root) {
   case NODE_PAREN:
   case NODE_BRACE:
     vec_foreach(Redir, redir, &root->group.redirs) {
-      if (redir->type != REDIRECT_IN_FD && redir->type != REDIRECT_OUT_FD && redir->type != REDIRECT_HEREDOC) {
+      if (
+        redir->type == REDIRECT_IN ||
+        redir->type == REDIRECT_OUT ||
+        redir->type == REDIRECT_APPEND
+      ) {
         free(redir->path);
       }
     }

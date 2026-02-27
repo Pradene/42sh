@@ -255,19 +255,11 @@ int main(int argc, char **argv, char **envp) {
 
   if (argc > 0) {
     run_file(*argv, &shell);
-    ht_clear(&shell.environment);
-    ht_clear(&shell.aliases);
-    return shell.status;
-  }
-
-  if (isatty(STDIN_FILENO)) {
+  } else if (isatty(STDIN_FILENO)) {
     shell.interactive = true;
     run_interactive(&shell);
   } else {
     run_fd(STDIN_FILENO, "stdin", &shell);
-    ht_clear(&shell.environment);
-    ht_clear(&shell.aliases);
-    return shell.status;
   }
 
   ht_clear(&shell.environment);
