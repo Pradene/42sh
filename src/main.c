@@ -16,22 +16,62 @@
 #include <fcntl.h>
 
 static int run_string(const char *input, Shell *shell) {
-  AstNode *root = NULL;
-  StatusCode status = parse(input, &root);
+  StringBuffer acc = {0};
+  size_t i = 0;
 
-  if (status == INCOMPLETE_INPUT) {
+  while (input[i]) {
+    size_t start = i;
+
+    while (input[i] && input[i] != '\n') {
+      ++i;
+    }
+    size_t line_len = i - start;
+    if (input[i] == '\n') {
+      ++i;
+    }
+
+    if (line_len == 0 && acc.size == 0) {
+      continue;
+    }
+
+    char *line = strndup(input + start, line_len);
+    if (!line) {
+      break;
+    }
+
+    if (acc.size > 0) {
+      sb_append_char(&acc, '\n');
+    }
+    sb_append(&acc, line);
+    free(line);
+
+    AstNode *root = NULL;
+    StatusCode status = parse(sb_as_cstr(&acc), &root);
+
+    if (status == INCOMPLETE_INPUT) {
+      continue;
+    }
+
+    sb_free(&acc);
+    acc = (StringBuffer){0};
+
+    if (status != OK || !root) {
+      fprintf(stderr, "42sh: syntax error\n");
+      shell->status = 2;
+      continue;
+    }
+
+    shell->command = root;
+    execute_command(root, shell);
+    ast_free(root);
+    shell->command = NULL;
+  }
+
+  if (acc.size > 0) {
     fprintf(stderr, "42sh: unexpected end of input\n");
-    return 2;
+    sb_free(&acc);
+    shell->status = 2;
   }
-  if (status != OK || !root) {
-    fprintf(stderr, "42sh: syntax error\n");
-    return 2;
-  }
-
-  shell->command = root;
-  execute_command(root, shell);
-  ast_free(root);
-  shell->command = NULL;
 
   return shell->status;
 }
@@ -217,7 +257,9 @@ int main(int argc, char **argv, char **envp) {
       .capacity = 0,
       .free = free
     },
+    .command = NULL,
     .status = 0,
+    .interactive = false,
   };
 
   env_from_cstr_array(&shell.environment, (const char **)envp);
