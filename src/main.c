@@ -87,7 +87,6 @@ static int run_fd(int fd, const char *name, Shell *shell) {
   }
 
   char *content = sb_as_cstr(&sb);
-  sb_free(&sb);
 
   if (!content) {
     return 1;
