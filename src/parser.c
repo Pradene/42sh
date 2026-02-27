@@ -212,10 +212,6 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
       vec_push(&node->command.redirs, redir);
       if (redir.type == REDIRECT_HEREDOC) {
         vec_push(&state->heredocs, &vec_last(&node->command.redirs));
-        if (status != OK) {
-          ast_free(node);
-          return status;
-        }
       }
     } else {
       break;
@@ -281,11 +277,7 @@ static StatusCode parse_group(ParserState *state, AstNode **root) {
     }
     vec_push(&node->group.redirs, redir);
     if (redir.type == REDIRECT_HEREDOC) {
-      vec_push(&state->heredocs, &vec_last(&node->command.redirs));
-      if (status != OK) {
-        ast_free(node);
-        return status;
-      }
+      vec_push(&state->heredocs, &vec_last(&node->group.redirs));
     }
   }
 

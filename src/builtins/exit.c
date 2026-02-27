@@ -5,11 +5,12 @@
 
 #include <unistd.h>
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 
-static int is_numeric(const char *s) {
+static bool is_numeric(const char *s) {
   size_t i = 0;
 
   if (!s || !s[i]) {
