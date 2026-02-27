@@ -82,8 +82,8 @@ static StatusCode read_heredoc(ParserState *state, Redir *redir) {
 
   unlink(template);
 
-  const char *delim = redir->target_path;
-  size_t delim_len = strlen(delim);
+  const char *delim = redir->path;
+  size_t delim_length = strlen(delim);
 
   while (true) {
     const char *line_start = state->input + state->position;
@@ -94,21 +94,21 @@ static StatusCode read_heredoc(ParserState *state, Redir *redir) {
       return INCOMPLETE_INPUT;
     }
 
-    size_t line_len = newline - line_start;
-    state->position += line_len + 1;
+    size_t line_length = newline - line_start;
+    state->position += line_length + 1;
 
-    if (line_len == delim_len && strncmp(line_start, delim, delim_len) == 0) {
+    if (line_length == delim_length && strncmp(line_start, delim, delim_length) == 0) {
       break;
     }
 
-    write(fd, line_start, line_len);
+    write(fd, line_start, line_length);
     write(fd, "\n", 1);
   }
 
   lseek(fd, 0, SEEK_SET);
-  free(redir->target_path);
-  redir->target_path = NULL;
-  redir->target_fd = fd;
+  free(redir->path);
+  redir->path = NULL;
+  redir->fd = fd;
   return OK;
 }
 
@@ -160,14 +160,12 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
   redir->type = type;
 
   if (type == REDIRECT_IN_FD || type == REDIRECT_OUT_FD) {
-    if (!is_valid_fd(word_token.s, &redir->target_fd)) {
+    if (!is_valid_fd(word_token.s, &redir->fd)) {
       return UNEXPECTED_TOKEN;
     }
-    redir->target_path = NULL;
   } else {
-    redir->target_fd = -1;
-    redir->target_path = strdup(word_token.s);
-    if (!redir->target_path) {
+    redir->path = strdup(word_token.s);
+    if (!redir->path) {
       return MEM_ALLOCATION_FAILED;
     }
   }

@@ -25,9 +25,10 @@ typedef enum RedirType {
 
 typedef struct Redir {
   RedirType type;
-  int fd;
-  int target_fd;
-  char *target_path;
+  union {
+    int fd;
+    char *path;
+  };
 } Redir;
 
 typedef struct Redirs {

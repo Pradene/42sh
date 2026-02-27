@@ -96,10 +96,10 @@ void expansion(AstNode *root, const Shell *shell) {
       if (redir->type == REDIRECT_HEREDOC) {
         continue;
       }
-      char *expanded = expand(redir->target_path, shell);
+      char *expanded = expand(redir->path, shell);
       if (expanded) {
-        free(redir->target_path);
-        redir->target_path = expanded;
+        free(redir->path);
+        redir->path = expanded;
       }
     }
 
@@ -135,10 +135,10 @@ void expansion(AstNode *root, const Shell *shell) {
           redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *expanded = expand(redir->target_path, shell);
+      char *expanded = expand(redir->path, shell);
       if (expanded) {
-        free(redir->target_path);
-        redir->target_path = expanded;
+        free(redir->path);
+        redir->path = expanded;
       }
     }
 

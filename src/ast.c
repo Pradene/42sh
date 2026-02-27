@@ -20,22 +20,26 @@ void ast_free(AstNode *root) {
     break;
   case NODE_COMMAND:
     vec_foreach(Redir, redir, &root->command.redirs) {
-      if (redir->type != REDIRECT_IN_FD && redir->type != REDIRECT_OUT_FD) {
-        free(redir->target_path);
+      if (redir->type != REDIRECT_IN_FD && redir->type != REDIRECT_OUT_FD && redir->type != REDIRECT_HEREDOC) {
+        free(redir->path);
       }
     }
     vec_free(&root->command.redirs);
-    vec_foreach(char *, arg, &root->command.args) { free(*arg); }
+
+    vec_foreach(char *, arg, &root->command.args) {
+      free(*arg);
+    }
     vec_free(&root->command.args);
     break;
   case NODE_PAREN:
   case NODE_BRACE:
-    vec_foreach(Redir, redir, &root->command.redirs) {
-      if (redir->type != REDIRECT_IN_FD && redir->type != REDIRECT_OUT_FD) {
-        free(redir->target_path);
+    vec_foreach(Redir, redir, &root->group.redirs) {
+      if (redir->type != REDIRECT_IN_FD && redir->type != REDIRECT_OUT_FD && redir->type != REDIRECT_HEREDOC) {
+        free(redir->path);
       }
     }
     vec_free(&root->group.redirs);
+
     ast_free(root->group.inner);
     break;
   default:
@@ -71,7 +75,7 @@ static void ast_print_redirs(Redirs *redirs, int depth) {
       type_str = "?";
     }
 
-    printf("REDIRECT %s %s\n", type_str, redir->target_path ? redir->target_path : "");
+    printf("REDIRECT %s %s\n", type_str, redir->path ? redir->path : "");
   }
 }
 

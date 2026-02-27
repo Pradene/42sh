@@ -66,10 +66,10 @@ void stripping(AstNode *root) {
       if (redir->type == REDIRECT_HEREDOC) {
         continue;
       }
-      char *stripped = strip_quotes(redir->target_path);
+      char *stripped = strip_quotes(redir->path);
       if (stripped) {
-        free(redir->target_path);
-        redir->target_path = stripped;
+        free(redir->path);
+        redir->path = stripped;
       }
     }
 
@@ -89,10 +89,10 @@ void stripping(AstNode *root) {
           redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *stripped = strip_quotes(redir->target_path);
+      char *stripped = strip_quotes(redir->path);
       if (stripped) {
-        free(redir->target_path);
-        redir->target_path = stripped;
+        free(redir->path);
+        redir->path = stripped;
       }
     }
 
