@@ -164,7 +164,7 @@ static int run_file(const char *path, Shell *shell) {
   return status;
 }
 
-static AstNode *get_command(Shell *shell) {
+static AstNode *get_command(void) {
   StringBuffer sb = {0};
   char *line = readline("$ ");
   if (!line) {
@@ -185,11 +185,11 @@ static AstNode *get_command(Shell *shell) {
       free(line);
       continue;
     }
+    
+    
 
-    char *expanded = expand_alias(sb_as_cstr(&sb), shell);
     AstNode *root = NULL;
-    StatusCode status = parse(expanded ? expanded : sb_as_cstr(&sb), &root);
-    free(expanded);
+    StatusCode status = parse(sb_as_cstr(&sb), &root);
     if (status == INCOMPLETE_INPUT) {
       line = readline("> ");
       if (!line) {
@@ -222,7 +222,7 @@ static void run_interactive(Shell *shell) {
     sa.sa_handler = sigint_handler;
     sigaction(SIGINT, &sa, NULL);
 
-    shell->command = get_command(shell);
+    shell->command = get_command();
     if (!shell->command) {
       continue;
     }

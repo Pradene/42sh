@@ -1,4 +1,5 @@
 - intern variable
+- alias should be done before parsing
 - alias substitution with space at end should check for next word too
 - built-ins (jobs, fg, bg, set, hash)
 - Parsing $() and $(())
