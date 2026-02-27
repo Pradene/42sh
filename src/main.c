@@ -6,14 +6,14 @@
 #include "status.h"
 #include "utils.h"
 
+#include <fcntl.h>
 #include <signal.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <fcntl.h>
 
 static int run_string(const char *input, Shell *shell) {
   StringBuffer acc = {0};
@@ -224,10 +224,10 @@ static void run_interactive(Shell *shell) {
     if (!shell->command) {
       continue;
     }
-    
+
     sa.sa_handler = SIG_IGN;
     sigaction(SIGINT, &sa, NULL);
-    
+
     execute_command(shell->command, shell);
     ast_free(shell->command);
     shell->command = NULL;
