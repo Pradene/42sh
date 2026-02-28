@@ -27,8 +27,9 @@ char *readline_interactive(Shell *shell) {
 
 char *readline_string(Shell *shell) {
   const char *s = shell->input_src;
-  if (!s || *s == '\0')
+  if (!s || *s == '\0') {
     return NULL;
+  }
 
   const char *end = strchr(s, '\n');
   char *line;
@@ -49,14 +50,16 @@ char *readline_fd(Shell *shell) {
   while (true) {
     ssize_t n = read(shell->input_fd, &c, 1);
     if (n <= 0) {
-      if (sb.size > 0)
+      if (sb.size > 0) {
         break;
+      }
       sb_free(&sb);
       return NULL;
     }
     sb_append_char(&sb, c);
-    if (c == '\n')
+    if (c == '\n') {
       break;
+    }
   }
 
   return sb_as_cstr(&sb);
