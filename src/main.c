@@ -48,11 +48,7 @@ static int run(Shell *shell) {
 
     if (status != OK) {
       sb_free(&shell->input);
-      if (shell->interactive) {
-        continue;
-      } else {
-        break;
-      }
+      continue;
     }
 
     expand_command(shell);
@@ -88,7 +84,9 @@ int main(int argc, char **argv, char **envp) {
         shell_destroy(&shell);
         return 2;
       }
-      // run_string(*argv, &shell);
+      shell.input_src = *argv;
+      shell.readline = readline_string;
+      run(&shell);
       shell_destroy(&shell);
       return shell.status;
     }
@@ -99,15 +97,25 @@ int main(int argc, char **argv, char **envp) {
   }
 
   if (argc > 0) {
-    // run_file(*argv, &shell);
+    int fd = open(*argv, O_RDONLY);
+    if (fd < 0) {
+      fprintf(stderr, "42sh: %s: cannot open file\n", *argv);
+      shell_destroy(&shell);
+      return 2;
+    }
+    shell.input_fd = fd;
+    shell.readline = readline_fd;
+    run(&shell);
+    close(fd);
   } else if (isatty(STDIN_FILENO)) {
     shell.interactive = true;
-    shell.readline = readline;
+    shell.readline = readline_interactive;
     run(&shell);
   } else {
-    // run_fd(STDIN_FILENO, "stdin", &shell);
+    shell.input_fd = STDIN_FILENO;
+    shell.readline = readline_fd;
+    run(&shell);
   }
-
 
   shell_destroy(&shell);
   return shell.status;

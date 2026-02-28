@@ -15,7 +15,9 @@ void execute_command(Shell *shell);
 
 char *find_command_path(const char *cmd, const char *path);
 
-char *readline(Shell *shell);
+char *readline_interactive(Shell *shell);
+char *readline_string(Shell *shell);
+char *readline_fd(Shell *shell);
 
 void expand_alias(Shell *shell);
 void expansion(AstNode *root, const Shell *shell);

@@ -7,10 +7,12 @@
 typedef struct Shell {
   HashTable     environment; // value -> Variable *
   HashTable     aliases;     // value -> char *
-  AstNode       *command;
+  AstNode      *command;
   uint8_t       status;
   bool          interactive;
   StringBuffer  input;
+  int32_t       input_fd;
+  const char   *input_src;
 
   char *(*readline)(struct Shell *shell);
 } Shell;
