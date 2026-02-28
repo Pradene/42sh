@@ -33,19 +33,16 @@ void builtin_exit(AstNode *node, Shell *shell) {
   size_t argc = vec_size(&node->command.args);
 
   fprintf(stderr, "exit\n");
-  
+
   if (argc > 2) {
     fprintf(stderr, "exit: too many arguments\n");
     return;
   }
 
-  ht_clear(&shell->environment);
-  ht_clear(&shell->aliases);
-  
   if (argc == 2) {
     if (!is_numeric(args[1])) {
       fprintf(stderr, "exit: numeric argument required\n");
-      ast_free(shell->command);
+      shell_destroy(shell);
       exit(2);
     }
 
@@ -53,14 +50,14 @@ void builtin_exit(AstNode *node, Shell *shell) {
     long long value = strtoll(args[1], NULL, 10);
     if (errno == ERANGE) {
       fprintf(stderr, "exit: numeric argument required\n");
-      ast_free(shell->command);
+      shell_destroy(shell);
       exit(2);
     }
 
-    ast_free(shell->command);
+    shell_destroy(shell);
     exit((uint8_t)value);
   }
 
-  ast_free(shell->command);
+  shell_destroy(shell);
   exit(0);
 }

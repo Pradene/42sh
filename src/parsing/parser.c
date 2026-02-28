@@ -425,7 +425,8 @@ static StatusCode parse_sequence(ParserState *state, AstNode **root) {
   return OK;
 }
 
-StatusCode parse(const char *input, AstNode **root) {
+StatusCode parse(Shell *shell) {
+  char *input = sb_as_cstr(&shell->input);
   if (!input) {
     return UNEXPECTED_TOKEN;
   }
@@ -438,8 +439,7 @@ StatusCode parse(const char *input, AstNode **root) {
     .heredocs = {0}
   };
 
-  AstNode *node = NULL;
-  StatusCode status = parse_sequence(&state, &node);
+  StatusCode status = parse_sequence(&state, &shell->command);
   if (status != OK) {
     vec_foreach(Redir *, heredoc, &state.heredocs) {
       free((*heredoc)->delimiter);
@@ -456,19 +456,18 @@ StatusCode parse(const char *input, AstNode **root) {
         free((*heredoc)->delimiter);
       }
       vec_free(&state.heredocs);
-      ast_free(node);
+      ast_free(shell->command);
       return ds;
     }
-    *root = node;
     return OK;
   }
 
   if (!parser_match(&state, TOKEN_EOF)) {
-    ast_free(node);
     vec_foreach(Redir *, heredoc, &state.heredocs) {
       free((*heredoc)->delimiter);
     }
     vec_free(&state.heredocs);
+    ast_free(shell->command);
     return UNEXPECTED_TOKEN;
   }
 
@@ -476,6 +475,6 @@ StatusCode parse(const char *input, AstNode **root) {
     free((*heredoc)->delimiter);
   }
   vec_free(&state.heredocs);
-  *root = node;
+
   return OK;
 }

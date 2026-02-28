@@ -14,6 +14,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+void execute_node(AstNode *node, Shell *shell);
+
 static bool is_executable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
@@ -135,15 +137,14 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     char *paths = env_find(&shell->environment, "PATH");
     if (!paths) {
       fprintf(stderr, "PATH is not set\n");
+      shell_destroy(shell);
       exit(EXIT_FAILURE);
     }
-    
+
     char *path = find_command_path(args[0], paths);
     if (!path) {
       fprintf(stderr, "Command not found: %s\n", args[0]);
-      ast_free(shell->command);
-      ht_clear(&shell->environment);
-      ht_clear(&shell->aliases);
+      shell_destroy(shell);
       exit(EXIT_FAILURE);
     }
 
@@ -171,9 +172,8 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     }
     free(envp);
     free(path);
-    ast_free(shell->command);
-    ht_clear(&shell->environment);
-    ht_clear(&shell->aliases);
+
+    shell_destroy(shell);
 
     exit(EXIT_FAILURE);
   } else {
@@ -210,12 +210,10 @@ void execute_pipe(AstNode *root, Shell *shell) {
     dup2(pipefd[1], STDOUT_FILENO);
     close(pipefd[1]);
 
-    execute_command(root->operator.left, shell);
+    execute_node(root->operator.left, shell);
     int status = shell->status;
 
-    ast_free(shell->command);
-    ht_clear(&shell->environment);
-    ht_clear(&shell->aliases);
+    shell_destroy(shell);
 
     exit(status);
   }
@@ -232,12 +230,10 @@ void execute_pipe(AstNode *root, Shell *shell) {
     dup2(pipefd[0], STDIN_FILENO);
     close(pipefd[0]);
 
-    execute_command(root->operator.right, shell);
+    execute_node(root->operator.right, shell);
     int status = shell->status;
 
-    ast_free(shell->command);
-    ht_clear(&shell->environment);
-    ht_clear(&shell->aliases);
+    shell_destroy(shell);
 
     exit(status);
   }
@@ -270,11 +266,9 @@ void execute_subshell(AstNode *node, Shell *shell) {
 
     apply_redirs(&node->group.redirs);
 
-    execute_command(node->group.inner, shell);
+    execute_node(node->group.inner, shell);
 
-    ast_free(node);
-    ht_clear(&shell->environment);
-    ht_clear(&shell->aliases);
+    shell_destroy(shell);
 
     exit(shell->status);
   } else {
@@ -293,48 +287,45 @@ void execute_subshell(AstNode *node, Shell *shell) {
   }
 }
 
-void execute_command(AstNode *root, Shell *shell) {
-  if (!root) {
+void execute_node(AstNode *node, Shell *shell) {
+  if (!node) {
     return;
   }
 
-  switch (root->type) {
+  switch (node->type) {
   case NODE_AND:
-    execute_command(root->operator.left, shell);
+    execute_node(node->operator.left, shell);
     if (shell->status == 0) {
-      execute_command(root->operator.right, shell);
+      execute_node(node->operator.right, shell);
     }
     return;
   case NODE_OR:
-    execute_command(root->operator.left, shell);
+    execute_node(node->operator.left, shell);
     if (shell->status != 0) {
-      execute_command(root->operator.right, shell);
+      execute_node(node->operator.right, shell);
     }
     return;
   case NODE_PIPE: {
-    execute_pipe(root, shell);
+    execute_pipe(node, shell);
     return;
   }
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    execute_command(root->operator.left, shell);
-    execute_command(root->operator.right, shell);
+    execute_node(node->operator.left, shell);
+    execute_node(node->operator.right, shell);
     return;
   case NODE_BRACE:
-    expansion(root, shell);
-    stripping(root);
-    execute_command(root->group.inner, shell);
+    execute_node(node->group.inner, shell);
     return;
   case NODE_PAREN:
-    expansion(root, shell);
-    stripping(root);
-    execute_subshell(root, shell);
+    execute_subshell(node, shell);
     return;
   case NODE_COMMAND:
-    expansion(root, shell);
-    splitting(root);
-    stripping(root);
-    execute_simple_command(root, shell);
+    execute_simple_command(node, shell);
     return;
   }
+}
+
+void execute_command(Shell *shell) {
+  execute_node(shell->command, shell);
 }

@@ -15,227 +15,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static int run_string(const char *input, Shell *shell) {
-  StringBuffer acc = {0};
-  size_t i = 0;
-
-  while (input[i]) {
-    size_t start = i;
-
-    while (input[i] && input[i] != '\n') {
-      ++i;
-    }
-    size_t line_len = i - start;
-    if (input[i] == '\n') {
-      ++i;
-    }
-
-    if (line_len == 0 && acc.size == 0) {
-      continue;
-    }
-
-    char *line = strndup(input + start, line_len);
-    if (!line) {
-      break;
-    }
-
-    if (acc.size > 0) {
-      sb_append_char(&acc, '\n');
-    }
-    sb_append(&acc, line);
-    free(line);
-
-    AstNode *root = NULL;
-    StatusCode status = parse(sb_as_cstr(&acc), &root);
-
-    if (status == INCOMPLETE_INPUT) {
-      continue;
-    }
-
-    sb_free(&acc);
-    acc = (StringBuffer){0};
-
-    if (status != OK || !root) {
-      fprintf(stderr, "42sh: syntax error\n");
-      shell->status = 2;
-      continue;
-    }
-
-    shell->command = root;
-    execute_command(root, shell);
-    ast_free(root);
-    shell->command = NULL;
-  }
-
-  if (acc.size > 0) {
-    fprintf(stderr, "42sh: unexpected end of input\n");
-    sb_free(&acc);
-    shell->status = 2;
-  }
-
-  return shell->status;
-}
-
-static int run_fd(int fd, const char *name, Shell *shell) {
-  StringBuffer sb = {0};
-  char buf[4096];
-  ssize_t n;
-
-  while ((n = read(fd, buf, sizeof(buf) - 1)) > 0) {
-    buf[n] = '\0';
-    sb_append(&sb, buf);
-  }
-
-  char *content = sb_as_cstr(&sb);
-
-  if (!content) {
-    return 1;
-  }
-
-  StringBuffer acc = {0};
-  size_t i = 0;
-
-  while (content[i]) {
-    size_t start = i;
-
-    while (content[i] && content[i] != '\n') {
-      ++i;
-    }
-    size_t line_len = i - start;
-    if (content[i] == '\n') {
-      ++i;
-    }
-
-    if (line_len == 0 && acc.size == 0) {
-      continue;
-    }
-
-    char *line = strndup(content + start, line_len);
-    if (!line) {
-      break;
-    }
-
-    if (acc.size > 0) {
-      sb_append_char(&acc, '\n');
-    }
-    sb_append(&acc, line);
-    free(line);
-
-    AstNode *root = NULL;
-    StatusCode status = parse(sb_as_cstr(&acc), &root);
-
-    if (status == INCOMPLETE_INPUT) {
-      continue;
-    }
-
-    sb_free(&acc);
-    acc = (StringBuffer){0};
-
-    if (status != OK || !root) {
-      fprintf(stderr, "42sh: %s: syntax error\n", name);
-      shell->status = 2;
-      continue;
-    }
-
-    shell->command = root;
-    execute_command(root, shell);
-    ast_free(root);
-    shell->command = NULL;
-  }
-
-  if (acc.size > 0) {
-    fprintf(stderr, "42sh: %s: unexpected end of file\n", name);
-    sb_free(&acc);
-    shell->status = 2;
-  }
-
-  free(content);
-  return shell->status;
-}
-
-static int run_file(const char *path, Shell *shell) {
-  int fd = open(path, O_RDONLY);
-  if (fd < 0) {
-    fprintf(stderr, "42sh: %s: No such file or directory\n", path);
-    return 127;
-  }
-  int status = run_fd(fd, path, shell);
-  close(fd);
-  return status;
-}
-
-static AstNode *get_command(Shell *shell) {
-  StringBuffer sb = {0};
-  char *line = readline("$ ");
-  if (!line) {
-    exit(EXIT_SUCCESS);
-  }
-
-  sb_append(&sb, line);
-  free(line);
-
-  while (true) {
-    if (strendswith(sb_as_cstr(&sb), "\\")) {
-      line = readline("> ");
-      if (!line) {
-        sb_free(&sb);
-        exit(EXIT_SUCCESS);
-      }
-      sb_append(&sb, line);
-      free(line);
-      continue;
-    }
-
-    char *expanded = expand_alias(sb_as_cstr(&sb), shell);
-    AstNode *root = NULL;
-    StatusCode status = parse(expanded ? expanded : sb_as_cstr(&sb), &root);
-    free(expanded);
-    if (status == INCOMPLETE_INPUT) {
-      line = readline("> ");
-      if (!line) {
-        sb_free(&sb);
-        exit(EXIT_SUCCESS);
-      }
-      sb_append(&sb, line);
-      free(line);
-      continue;
-    }
-
-    if (status != OK) {
-      sb_free(&sb);
-      return NULL;
-    }
-
-    sb_free(&sb);
-    return root;
-  }
-}
-
-static void run_interactive(Shell *shell) {
-  struct sigaction sa;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = 0;
-  sa.sa_handler = SIG_IGN;
-  sigaction(SIGQUIT, &sa, NULL);
-
-  while (true) {
-    sa.sa_handler = sigint_handler;
-    sigaction(SIGINT, &sa, NULL);
-
-    shell->command = get_command(shell);
-    if (!shell->command) {
-      continue;
-    }
-
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGINT, &sa, NULL);
-
-    execute_command(shell->command, shell);
-    ast_free(shell->command);
-    shell->command = NULL;
-  }
-}
-
 static bool opt_has(const char *arg, char opt) {
   if (!arg || arg[0] != '-' || arg[1] == '-' || arg[1] == '\0') {
     return false;
@@ -244,24 +23,50 @@ static bool opt_has(const char *arg, char opt) {
   }
 }
 
+static int run(Shell *shell) {
+  while (true) {
+    shell->command = NULL;
+
+    char *line = shell->readline(shell);
+    if (!line) {
+      break;
+    }
+
+    sb_append(&shell->input, line);
+    free(line);
+
+    if (strendswith(sb_as_cstr(&shell->input), "\\")) {
+      continue;
+    }
+
+    expand_alias(shell);
+
+    StatusCode status = parse(shell);
+    if (status == INCOMPLETE_INPUT) {
+      continue;
+    }
+
+    if (status != OK) {
+      sb_free(&shell->input);
+      if (shell->interactive) {
+        continue;
+      } else {
+        break;
+      }
+    }
+
+    expand_command(shell);
+    execute_command(shell);
+
+    ast_free(shell->command);
+    sb_free(&shell->input);
+  }
+
+  return shell->status;
+}
+
 int main(int argc, char **argv, char **envp) {
-  Shell shell = {
-    .environment = (HashTable){
-      .buckets = NULL,
-      .size = 0,
-      .capacity = 0,
-      .free = env_variable_free
-    },
-    .aliases = (HashTable){
-      .buckets = NULL,
-      .size = 0,
-      .capacity = 0,
-      .free = free
-    },
-    .command = NULL,
-    .status = 0,
-    .interactive = false,
-  };
+  Shell shell = shell_create();
 
   env_from_cstr_array(&shell.environment, (const char **)envp);
 
@@ -280,32 +85,30 @@ int main(int argc, char **argv, char **envp) {
       ++argv;
       if (argc == 0) {
         fprintf(stderr, "42sh: -c: option requires an argument\n");
-        ht_clear(&shell.environment);
-        ht_clear(&shell.aliases);
+        shell_destroy(&shell);
         return 2;
       }
-      run_string(*argv, &shell);
-      ht_clear(&shell.environment);
-      ht_clear(&shell.aliases);
+      // run_string(*argv, &shell);
+      shell_destroy(&shell);
       return shell.status;
     }
 
     fprintf(stderr, "42sh: %s: invalid option\n", *argv);
-    ht_clear(&shell.environment);
-    ht_clear(&shell.aliases);
+    shell_destroy(&shell);
     return 2;
   }
 
   if (argc > 0) {
-    run_file(*argv, &shell);
+    // run_file(*argv, &shell);
   } else if (isatty(STDIN_FILENO)) {
     shell.interactive = true;
-    run_interactive(&shell);
+    shell.readline = readline;
+    run(&shell);
   } else {
-    run_fd(STDIN_FILENO, "stdin", &shell);
+    // run_fd(STDIN_FILENO, "stdin", &shell);
   }
 
-  ht_clear(&shell.environment);
-  ht_clear(&shell.aliases);
+
+  shell_destroy(&shell);
   return shell.status;
 }

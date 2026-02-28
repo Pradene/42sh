@@ -1,22 +1,9 @@
+#include "shell.h"
 #include "ast.h"
 #include "env.h"
-#include "sb.h"
 #include "vec.h"
-#include "42sh.h"
 
 #include <ctype.h>
-#include <stdio.h>
-
-static const char *get_variable(const Shell *shell, const char *name) {
-  char *v;
-
-  v = env_find(&shell->environment, name);
-  if (v) {
-    return v;
-  }
-
-  return "";
-}
 
 static char *expand(const char *s, const Shell *shell) {
   StringBuffer sb = {0};
@@ -40,7 +27,7 @@ static char *expand(const char *s, const Shell *shell) {
           size_t v_length = i - v_start;
           char *v_name = strndup(s + v_start, v_length);
           if (v_name) {
-            const char *v_value = get_variable(shell, v_name);
+            const char *v_value = env_find(&shell->environment, v_name);
             if (v_value) {
               sb_append(&sb, v_value);
             }
@@ -59,7 +46,7 @@ static char *expand(const char *s, const Shell *shell) {
         size_t v_length = i - v_start;
         char *v_name = strndup(s + v_start, v_length);
         if (v_name) {
-          const char *v_value = get_variable(shell, v_name);
+          const char *v_value = env_find(&shell->environment, v_name);
           if (v_value) {
             sb_append(&sb, v_value);
           }
@@ -93,7 +80,7 @@ void expansion(AstNode *root, const Shell *shell) {
   case NODE_BRACE:
   case NODE_PAREN:
     vec_foreach(Redir, redir, &root->group.redirs) {
-      if (redir->type == REDIRECT_HEREDOC) {
+      if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
       char *expanded = expand(redir->path, shell);
@@ -106,22 +93,6 @@ void expansion(AstNode *root, const Shell *shell) {
     return;
 
   case NODE_COMMAND:
-    if (root->command.args.size != 0) {
-      HashEntry *entry = ht_get(&shell->aliases, root->command.args.data[0]);
-      if (entry) {
-        char *alias_value = strdup(entry->value);
-        Arguments args = {0};
-        vec_push(&args, alias_value);
-        for (size_t i = 1; i < root->command.args.size; ++i) {
-          vec_push(&args, root->command.args.data[i]);
-        }
-        free(root->command.args.data);
-        root->command.args.data = args.data;
-        root->command.args.size = args.size;
-        root->command.args.capacity = args.capacity;
-      }
-    }
-
     vec_foreach(char *, arg, &root->command.args) {
       char *expanded = expand(*arg, shell);
       if (expanded) {
@@ -131,8 +102,7 @@ void expansion(AstNode *root, const Shell *shell) {
     }
 
     vec_foreach(Redir, redir, &root->command.redirs) {
-      if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD ||
-          redir->type == REDIRECT_IN_FD) {
+      if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
       char *expanded = expand(redir->path, shell);

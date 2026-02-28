@@ -2,22 +2,20 @@
 
 #include <ctype.h>
 
-char *expand_alias(const char *input, const Shell *shell) {
+void expand_alias(Shell *shell) {
+  bool command_pos = true;
+  char *input = sb_as_cstr(&shell->input);
+
   StringBuffer sb = {0};
   size_t i = 0;
-  bool command_pos = true; // start of input is a command position
-
   while (input[i]) {
-    // Skip whitespace, preserving it
-    if (input[i] == ' ' || input[i] == '\t') {
+    if (isspace(input[i])) {
       sb_append_char(&sb, input[i++]);
       continue;
     }
 
-    // These tokens put the next word back into command position
     if (input[i] == '|' || input[i] == ';' || input[i] == '(' || input[i] == '{' || input[i] == '\n') {
       sb_append_char(&sb, input[i++]);
-      // handle ||
       if (input[i-1] == '|' && input[i] == '|') {
         sb_append_char(&sb, input[i++]);
       }
@@ -34,7 +32,6 @@ char *expand_alias(const char *input, const Shell *shell) {
       continue;
     }
 
-    // If we're in a command position, try to match an alias
     if (command_pos && (isalnum((unsigned char)input[i]) || input[i] == '_')) {
       size_t word_start = i;
       while (input[i] && (isalnum((unsigned char)input[i]) || input[i] == '_' || input[i] == '-' || input[i] == '.')) {
@@ -44,7 +41,7 @@ char *expand_alias(const char *input, const Shell *shell) {
       char *word = strndup(input + word_start, word_len);
       if (!word) {
         sb_free(&sb);
-        return strdup(input);
+        return;
       }
 
       HashEntry *entry = ht_get(&shell->aliases, word);
@@ -65,6 +62,6 @@ char *expand_alias(const char *input, const Shell *shell) {
     command_pos = false;
   }
 
-  char *result = sb_as_cstr(&sb);
-  return result ? result : strdup(input);
+  sb_free(&shell->input);
+  shell->input = sb;
 }

@@ -2,6 +2,7 @@
 
 #include "ast.h"
 #include "lexer.h"
+#include "shell.h"
 #include "status.h"
 
 typedef struct {
@@ -18,5 +19,5 @@ typedef struct {
   PendingHeredocs heredocs;
 } ParserState;
 
-StatusCode parse(const char *input, AstNode **root);
+StatusCode parse(Shell *shell);
 

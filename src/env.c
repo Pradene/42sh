@@ -6,7 +6,6 @@
 
 #include <stdio.h>
 
-
 void env_variable_free(void *value) {
   Variable *variable = (Variable *)value;
   free(variable->content);
@@ -27,7 +26,7 @@ StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
         free(content);
         continue;
       }
-      
+
       Variable *value = (Variable *)malloc(sizeof(Variable));
       value->content = content;
       value->exported = true;

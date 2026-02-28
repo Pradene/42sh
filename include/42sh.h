@@ -6,27 +6,20 @@
 #include "env.h"
 #include "sb.h"
 #include "ht.h"
-
-typedef struct {
-  HashTable environment; // value -> Variable *
-  HashTable aliases;     // value -> char *
-  AstNode   *command;
-  uint8_t   status;
-  bool      interactive;
-} Shell;
+#include "shell.h"
 
 void sigint_handler(int code);
 void sigint_heredoc_handler(int code);
 
+void execute_command(Shell *shell);
+
+char *find_command_path(const char *cmd, const char *path);
+
+char *readline(Shell *shell);
+
+void expand_alias(Shell *shell);
 void expansion(AstNode *root, const Shell *shell);
 void stripping(AstNode *root);
 void splitting(AstNode *root);
 
-void execute_command(AstNode *root, Shell *shell);
-
-char *find_command_path(const char *cmd, const char *path);
-
-char *readline(const char *prompt);
-
-char *expand_alias(const char *input, const Shell *shell);
-
+void expand_command(Shell *shell);
