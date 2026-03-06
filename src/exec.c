@@ -63,7 +63,7 @@ char *find_command_path(const char *cmd, const char *paths) {
   return result;
 }
 
-static void apply_redirs(Redirs *redirs) {
+void apply_redirs(Redirs *redirs) {
   if (!redirs || !vec_size(redirs)) {
     return;
   }

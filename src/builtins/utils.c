@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 static Builtin builtins[] = {
   { "alias", builtin_alias },
@@ -33,19 +34,31 @@ bool is_builtin(const char *command) {
 }
 
 void exec_builtin(AstNode *node, Shell *shell) {
-  if (!node || node->type != NODE_COMMAND) {
+  if (!node || node->type != NODE_COMMAND)
     return;
-  }
 
   char *command = node->command.args.data[0];
-  if (!command) {
+  if (!command)
     return;
-  }
+
+  int saved_stdin  = dup(STDIN_FILENO);
+  int saved_stdout = dup(STDOUT_FILENO);
+  int saved_stderr = dup(STDERR_FILENO);
+
+  apply_redirs(&node->command.redirs);
 
   for (int i = 0; builtins[i].name; ++i) {
     if (!strcmp(command, builtins[i].name)) {
       builtins[i].fn(node, shell);
-      return;
+      break;
     }
   }
+
+  dup2(saved_stdin,  STDIN_FILENO);
+  dup2(saved_stdout, STDOUT_FILENO);
+  dup2(saved_stderr, STDERR_FILENO);
+
+  close(saved_stdin);
+  close(saved_stdout);
+  close(saved_stderr);
 }
