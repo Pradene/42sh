@@ -34,6 +34,12 @@ void ast_free(AstNode *root) {
       free(*arg);
     }
     vec_free(&root->command.args);
+
+    vec_foreach(Assignment, arg, &root->command.assigns) {
+      free(arg->name);
+      free(arg->value);
+    }
+    vec_free(&root->command.assigns);
     break;
   case NODE_PAREN:
   case NODE_BRACE:
@@ -96,6 +102,9 @@ static void ast_print_inner(AstNode *root, int depth) {
   switch (root->type) {
   case NODE_COMMAND:
     printf("COMMAND: ");
+    for (size_t i = 0; i < root->command.assigns.size; ++i) {
+      printf("%s=%s ", root->command.assigns.data[i].name, root->command.assigns.data[i].value);
+    }
     for (size_t i = 0; i < root->command.args.size; ++i) {
       printf("%s ", root->command.args.data[i]);
     }

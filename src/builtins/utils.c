@@ -1,6 +1,7 @@
 #include "builtin.h"
 #include "env.h"
 #include "ast.h"
+#include "vec.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -34,23 +35,24 @@ bool is_builtin(const char *command) {
 }
 
 void exec_builtin(AstNode *node, Shell *shell) {
-  if (!node || node->type != NODE_COMMAND)
+  if (!node || node->type != NODE_COMMAND) {
     return;
-
-  char *command = node->command.args.data[0];
-  if (!command)
-    return;
-
+  }
+  
   int saved_stdin  = dup(STDIN_FILENO);
   int saved_stdout = dup(STDOUT_FILENO);
   int saved_stderr = dup(STDERR_FILENO);
-
+  
   apply_redirs(&node->command.redirs);
-
-  for (int i = 0; builtins[i].name; ++i) {
-    if (!strcmp(command, builtins[i].name)) {
-      builtins[i].fn(node, shell);
-      break;
+  apply_assignments(&node->command.assigns);
+  
+  if (vec_size(&node->command.args) != 0) {
+    char *command = node->command.args.data[0];
+    for (int i = 0; builtins[i].name; ++i) {
+      if (!strcmp(command, builtins[i].name)) {
+        builtins[i].fn(node, shell);
+        break;
+      }
     }
   }
 

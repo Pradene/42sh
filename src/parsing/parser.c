@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 
 static StatusCode parse_redir(ParserState *state, Redir *redir);
 static StatusCode parse_simple_command(ParserState *state, AstNode **root);
@@ -59,6 +60,22 @@ static bool is_redirect_token(ParserState *state) {
     parser_match(state, TOKEN_REDIRECT_IN_FD) ||
     parser_match(state, TOKEN_REDIRECT_OUT_FD)
   );
+}
+
+static bool is_assignment(const char *token) {
+  if (!token || (!isalpha((unsigned char)token[0]) && token[0] != '_')) {
+    return false;
+  }
+
+  size_t i = 1;
+  while (token[i] && token[i] != '=') {
+    if (!isalnum((unsigned char)token[i]) && token[i] != '_') {
+      return false;
+    }
+    ++i;
+  }
+
+  return token[i] == '=';
 }
 
 static bool is_valid_fd(const char *s, int *fd) {
@@ -190,6 +207,8 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
   node->type = NODE_COMMAND;
   node->command = (Command){0};
 
+  bool is_assignment_ended = false;
+
   while (true) {
     Token token;
     StatusCode status = parser_peek(state, &token);
@@ -205,8 +224,19 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
         ast_free(node);
         return status;
       }
-      vec_push(&node->command.args, token.s);
-      parser_advance(state);
+
+      if (!is_assignment_ended && is_assignment(token.s)) {
+        char *equal = strchr(token.s, '=');
+        char *name = strndup(token.s, equal - token.s);
+        char *value = strdup(equal + 1);
+        vec_push(&node->command.assigns, ((Assignment){name, value}));
+        parser_advance(state);
+        free(token.s);
+      } else {
+        is_assignment_ended = true;
+        vec_push(&node->command.args, token.s);
+        parser_advance(state);
+      }
     } else if (is_redirect_token(state)) {
       Redir redir = {0};
       StatusCode status = parse_redir(state, &redir);
@@ -223,7 +253,7 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
     }
   }
 
-  if (vec_size(&node->command.args) || vec_size(&node->command.redirs)) {
+  if (vec_size(&node->command.args) || vec_size(&node->command.redirs) || vec_size(&node->command.assigns)) {
     *root = node;
     return OK;
   } else {

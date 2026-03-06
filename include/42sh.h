@@ -12,6 +12,7 @@ void sigint_handler(int code);
 void sigint_heredoc_handler(int code);
 
 void apply_redirs(Redirs *redirs);
+void apply_assignments(Assignments *assignments);
 void execute_command(Shell *shell);
 
 char *find_command_path(const char *cmd, const char *path);

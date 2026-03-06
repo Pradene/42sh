@@ -32,11 +32,16 @@ typedef struct Redir {
   };
 } Redir;
 
-typedef struct Redirs {
-  Redir *data;
+typedef struct {
+  char *name;
+  char *value;
+} Assignment;
+
+typedef struct Assignments {
+  Assignment *data;
   size_t size;
   size_t capacity;
-} Redirs;
+} Assignments;
 
 typedef struct Arguments {
   char **data;
@@ -44,8 +49,15 @@ typedef struct Arguments {
   size_t capacity;
 } Arguments;
 
+typedef struct Redirs {
+  Redir *data;
+  size_t size;
+  size_t capacity;
+} Redirs;
+
 typedef struct Command {
   Arguments args;
+  Assignments assigns;
   Redirs redirs;
 } Command;
 

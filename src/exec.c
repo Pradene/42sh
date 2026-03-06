@@ -1,6 +1,6 @@
 #include "42sh.h"
-
 #include "ast.h"
+#include "vec.h"
 #include "builtin.h"
 #include "env.h"
 #include "vec.h"
@@ -61,6 +61,12 @@ char *find_command_path(const char *cmd, const char *paths) {
 
   free(copy);
   return result;
+}
+
+void apply_assignments(Assignments *assignments) {
+  if (!assignments || !vec_size(assignments)) {
+    return;
+  }
 }
 
 void apply_redirs(Redirs *redirs) {
@@ -124,7 +130,7 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     return;
   }
 
-  if (is_builtin(node->command.args.data[0])) {
+  if (vec_size(&node->command.args) == 0 || is_builtin(node->command.args.data[0])) {
     exec_builtin(node, shell);
     return;
   }
@@ -156,6 +162,7 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     sigaction(SIGQUIT, &sa, NULL);
 
     apply_redirs(&node->command.redirs);
+    apply_assignments(&node->command.assigns);
 
     vec_push(&node->command.args, NULL);
 
