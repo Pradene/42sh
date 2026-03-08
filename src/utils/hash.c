@@ -4,15 +4,16 @@
 #include <stdio.h>
 
 // djb2 hash function
-uint64_t djb2(const unsigned char *str) {
-  uint64_t hash = 5381;
+uint32_t djb2(const unsigned char *str) {
+  uint32_t hash = 5381;
 
-  while (*str)
+  while (*str) {
     hash = ((hash << 5) + hash) + *str++;
+  }
   return hash;
 }
 
-static bool ht_resize(HashTable *ht, size_t new_capacity) {
+static bool ht_resize(HashTable *ht, const size_t new_capacity) {
   HashEntry **new_buckets = calloc(new_capacity, sizeof(HashEntry *));
   if (!new_buckets) {
     return false;
@@ -23,7 +24,7 @@ static bool ht_resize(HashTable *ht, size_t new_capacity) {
 
     while (entry) {
       HashEntry *next = entry->next;
-      uint64_t hash = djb2((unsigned char *)entry->key) % new_capacity;
+      uint32_t hash = djb2((unsigned char *)entry->key) % new_capacity;
       entry->next = new_buckets[hash];
       new_buckets[hash] = entry;
       entry = next;
@@ -37,7 +38,11 @@ static bool ht_resize(HashTable *ht, size_t new_capacity) {
   return true;
 }
 
-void ht_insert(HashTable *ht, char *key, void *value) {
+void ht_insert(HashTable *ht, const char *key, void *value) {
+  if (!key || !value) {
+    return;
+  }
+  
   if (ht->capacity == 0) {
     ht_resize(ht, 32);
   }
@@ -46,15 +51,14 @@ void ht_insert(HashTable *ht, char *key, void *value) {
     ht_resize(ht, ht->capacity * 2);
   }
 
-  uint64_t hash = djb2((unsigned char *)key) % ht->capacity;
+  uint32_t hash = djb2((unsigned char *)key) % ht->capacity;
 
   HashEntry *entry = ht->buckets[hash];
   while (entry) {
     if (strcmp(entry->key, key) == 0) {
       ht->free(entry->value);
-      free(entry->key);
-      entry->key = key;
       entry->value = value;
+
       return;
     }
     entry = entry->next;
@@ -64,7 +68,7 @@ void ht_insert(HashTable *ht, char *key, void *value) {
   if (!entry) {
     return;
   }
-  entry->key = key;
+  entry->key = strdup(key);
   entry->value = value;
   entry->next = ht->buckets[hash];
   ht->buckets[hash] = entry;
@@ -78,6 +82,10 @@ bool ht_contains(const HashTable* ht, const char *key) {
 
 HashEntry *ht_get(const HashTable *ht, const char *key) {
   if (!ht || ht->capacity == 0) {
+    return NULL;
+  }
+
+  if (!key) {
     return NULL;
   }
 
@@ -98,7 +106,7 @@ void ht_remove(HashTable *ht, const char *key) {
     return;
   }
 
-  uint64_t hash = djb2((const unsigned char *)key) % ht->capacity;
+  uint32_t hash = djb2((const unsigned char *)key) % ht->capacity;
 
   HashEntry *node = ht->buckets[hash];
   HashEntry *prev = NULL;
@@ -111,8 +119,8 @@ void ht_remove(HashTable *ht, const char *key) {
         ht->buckets[hash] = node->next;
       }
 
-      free(node->key);
       ht->free(node->value);
+      free(node->key);
       free(node);
 
       ht->size--;
@@ -124,14 +132,51 @@ void ht_remove(HashTable *ht, const char *key) {
   }
 }
 
+void *ht_pop(HashTable *ht, const char *key) {
+  if (!ht || ht->capacity == 0) {
+    return NULL;
+  }
+
+  uint32_t hash = djb2((const unsigned char *)key) % ht->capacity;
+
+  HashEntry *node = ht->buckets[hash];
+  HashEntry *prev = NULL;
+
+  while (node) {
+    if (strcmp(node->key, key) == 0) {
+      if (prev) {
+        prev->next = node->next;
+      } else {
+        ht->buckets[hash] = node->next;
+      }
+
+      void *value = node->value;
+      free(node->key);
+      free(node);
+
+      ht->size--;
+      return value;
+    }
+
+    prev = node;
+    node = node->next;
+  }
+
+  return NULL;
+}
+
 void ht_clear(HashTable *ht) {
+  if (!ht) {
+    return;
+  }
+
   for (size_t i = 0; i < ht->capacity; ++i) {
     HashEntry *entry = ht->buckets[i];
 
     while (entry) {
       HashEntry *next = entry->next;
-      free(entry->key);
       ht->free(entry->value);
+      free(entry->key);
       free(entry);
       entry = next;
     }
@@ -139,6 +184,34 @@ void ht_clear(HashTable *ht) {
     ht->buckets[i] = NULL;
   }
 
-  ht->size = 0;
   free(ht->buckets);
+  ht->buckets = NULL;
+  ht->size = 0;
+  ht->capacity = 0;
+}
+
+void ht_destroy(HashTable *ht) {
+  if (!ht) {
+    return;
+  }
+
+  ht_clear(ht);
+  free(ht);
+}
+
+HashTable *ht_with_capacity(const size_t capacity) {
+  HashTable *ht = (HashTable *)malloc(sizeof(HashTable));
+  if (!ht) {
+    return NULL;
+  }
+
+  ht->buckets = NULL;
+  ht->size = 0;
+  ht->capacity = 0;
+  if (!ht_resize(ht, capacity)) {
+    free(ht);
+    return NULL;
+  }
+
+  return ht;
 }

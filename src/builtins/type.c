@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 void builtin_type(AstNode *node, Shell *shell) {
+  (void)shell;
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
@@ -22,12 +23,7 @@ void builtin_type(AstNode *node, Shell *shell) {
     if (is_builtin(cmd)) {
       printf("%s is a shell builtin\n", cmd);
     } else {
-      char *paths = env_find(&shell->environment, "PATH");
-      if (!paths) {
-        printf("PATH is not set\n");
-        return;
-      }
-      char *path = find_command_path(cmd, paths);
+      char *path = find_command_path(cmd);
       if (path) {
         printf("%s is %s\n", cmd, path);
         free(path);

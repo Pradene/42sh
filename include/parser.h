@@ -19,5 +19,5 @@ typedef struct {
   PendingHeredocs heredocs;
 } ParserState;
 
-StatusCode parse(Shell *shell);
+StatusCode parse(const char *input, AstNode **root);
 

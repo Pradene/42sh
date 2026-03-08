@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 void builtin_unalias(AstNode *node, Shell *shell) {
+  (void)shell;
   size_t argc = vec_size(&node->command.args);
   if (argc == 1) {
     fprintf(stderr, "unalias: usage: unalias name [name ...]\n");
@@ -13,6 +14,6 @@ void builtin_unalias(AstNode *node, Shell *shell) {
 
   char **args = node->command.args.data;
   for (size_t i = 1; i < argc; ++i) {
-    ht_remove(&shell->aliases, args[i]);
+    ht_remove(aliases, args[i]);
   }
 }

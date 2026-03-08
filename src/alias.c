@@ -2,21 +2,20 @@
 
 #include <ctype.h>
 
-void expand_alias(Shell *shell) {
-  bool command_pos = true;
-  char *input = sb_as_cstr(&shell->input);
-
+char *expand_alias(const char *input) {
   StringBuffer sb = {0};
+  bool command_pos = true;
   size_t i = 0;
+
   while (input[i]) {
-    if (isspace(input[i])) {
+    if (isspace((unsigned char)input[i])) {
       sb_append_char(&sb, input[i++]);
       continue;
     }
 
     if (input[i] == '|' || input[i] == ';' || input[i] == '(' || input[i] == '{' || input[i] == '\n') {
       sb_append_char(&sb, input[i++]);
-      if (input[i-1] == '|' && input[i] == '|') {
+      if (input[i - 1] == '|' && input[i] == '|') {
         sb_append_char(&sb, input[i++]);
       }
       command_pos = true;
@@ -37,18 +36,15 @@ void expand_alias(Shell *shell) {
       while (input[i] && (isalnum((unsigned char)input[i]) || input[i] == '_' || input[i] == '-' || input[i] == '.')) {
         ++i;
       }
-      size_t word_len = i - word_start;
-      char *word = strndup(input + word_start, word_len);
-      if (!word) {
-        sb_free(&sb);
-        return;
-      }
 
-      HashEntry *entry = ht_get(&shell->aliases, word);
+      char *word = strndup(input + word_start, i - word_start);
+      if (!word) { sb_free(&sb); return NULL; }
+
+      const char *replacement = (const char *)ht_get(aliases, word);
       free(word);
 
-      if (entry) {
-        sb_append(&sb, entry->value);
+      if (replacement) {
+        sb_append(&sb, replacement);
       } else {
         for (size_t j = word_start; j < i; ++j) {
           sb_append_char(&sb, input[j]);
@@ -62,6 +58,5 @@ void expand_alias(Shell *shell) {
     command_pos = false;
   }
 
-  sb_free(&shell->input);
-  shell->input = sb;
+  return sb_as_cstr(&sb);
 }

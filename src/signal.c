@@ -1,3 +1,5 @@
+#include "42sh.h"
+
 #include <unistd.h>
 
 void sigint_handler(int sig) {

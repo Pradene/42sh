@@ -1,11 +1,12 @@
 #include "shell.h"
+#include "42sh.h"
 #include "ast.h"
 #include "env.h"
 #include "vec.h"
 
 #include <ctype.h>
 
-static char *expand(const char *s, const Shell *shell) {
+static char *expand(const char *s) {
   StringBuffer sb = {0};
 
   if (!s || s[0] == '\0') {
@@ -27,7 +28,7 @@ static char *expand(const char *s, const Shell *shell) {
           size_t v_length = i - v_start;
           char *v_name = strndup(s + v_start, v_length);
           if (v_name) {
-            const char *v_value = env_find(&shell->environment, v_name);
+            const char *v_value = env_find(environ, v_name);
             if (v_value) {
               sb_append(&sb, v_value);
             }
@@ -46,7 +47,7 @@ static char *expand(const char *s, const Shell *shell) {
         size_t v_length = i - v_start;
         char *v_name = strndup(s + v_start, v_length);
         if (v_name) {
-          const char *v_value = env_find(&shell->environment, v_name);
+          const char *v_value = env_find(environ, v_name);
           if (v_value) {
             sb_append(&sb, v_value);
           }
@@ -65,6 +66,7 @@ static char *expand(const char *s, const Shell *shell) {
 }
 
 void expansion(AstNode *root, const Shell *shell) {
+  (void)shell;
   if (!root) {
     return;
   }
@@ -83,7 +85,7 @@ void expansion(AstNode *root, const Shell *shell) {
       if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *expanded = expand(redir->path, shell);
+      char *expanded = expand(redir->path);
       if (expanded) {
         free(redir->path);
         redir->path = expanded;
@@ -94,7 +96,7 @@ void expansion(AstNode *root, const Shell *shell) {
 
   case NODE_COMMAND:
     vec_foreach(char *, arg, &root->command.args) {
-      char *expanded = expand(*arg, shell);
+      char *expanded = expand(*arg);
       if (expanded) {
         free(*arg);
         *arg = expanded;
@@ -105,7 +107,7 @@ void expansion(AstNode *root, const Shell *shell) {
       if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *expanded = expand(redir->path, shell);
+      char *expanded = expand(redir->path);
       if (expanded) {
         free(redir->path);
         redir->path = expanded;

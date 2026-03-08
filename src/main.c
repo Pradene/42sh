@@ -15,6 +15,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+HashTable *environ = NULL;
+HashTable *aliases = NULL;
+
+uint8_t exit_status = 0;
+
+bool is_interactive = false;
+bool is_continuation = false;
+
+AstNode *last_command = NULL;
+
 static bool opt_has(const char *arg, char opt) {
   if (!arg || arg[0] != '-' || arg[1] == '-' || arg[1] == '\0') {
     return false;
@@ -23,48 +33,60 @@ static bool opt_has(const char *arg, char opt) {
   }
 }
 
-static int run(Shell *shell) {
+static void run(Shell *shell, char *(*readline)(Shell *shell)) {
+  StringBuffer sb = {0};
+  
   while (true) {
-    shell->command = NULL;
+    AstNode *command = NULL;
 
-    char *line = shell->readline(shell);
+    char *line = readline(shell);
     if (!line) {
       break;
     }
 
-    sb_append(&shell->input, line);
+    sb_append(&sb, line);
     free(line);
 
-    if (strendswith(sb_as_cstr(&shell->input), "\\")) {
+    if (strendswith(sb_as_cstr(&sb), "\\\n")) {
+      is_continuation = true;
       continue;
     }
 
-    expand_alias(shell);
+    char *expanded = expand_alias(sb_as_cstr(&sb));
 
-    StatusCode status = parse(shell);
+    StatusCode status = parse((const char *)expanded, &command);
+    free(expanded);
     if (status == INCOMPLETE_INPUT) {
+      is_continuation = true;
       continue;
     }
+
+    is_continuation = false;
+    sb_free(&sb);
 
     if (status != OK) {
-      sb_free(&shell->input);
       continue;
     }
 
-    expand_command(shell);
-    execute_command(shell);
+    last_command = command;
 
-    ast_free(shell->command);
-    sb_free(&shell->input);
+    expand_command(command, shell);
+    execute_command(command, shell);
+
+    ast_free(command);
   }
-
-  return shell->status;
 }
 
 int main(int argc, char **argv, char **envp) {
-  Shell shell = shell_create();
+  Shell shell = {0};
 
-  env_from_cstr_array(&shell.environment, (const char **)envp);
+  environ = ht_with_capacity(32);
+  environ->free = env_variable_free;
+
+  aliases = ht_with_capacity(32);
+  aliases->free = free;
+
+  environ_from_envp(environ, (const char **)envp);
 
   --argc;
   ++argv;
@@ -85,10 +107,9 @@ int main(int argc, char **argv, char **envp) {
         return 2;
       }
       shell.input_src = *argv;
-      shell.readline = readline_string;
-      run(&shell);
+      run(&shell, readline_string);
       shell_destroy(&shell);
-      return shell.status;
+      return exit_status;
     }
 
     fprintf(stderr, "42sh: %s: invalid option\n", *argv);
@@ -104,19 +125,16 @@ int main(int argc, char **argv, char **envp) {
       return 2;
     }
     shell.input_fd = fd;
-    shell.readline = readline_fd;
-    run(&shell);
+    run(&shell, readline_fd);
     close(fd);
   } else if (isatty(STDIN_FILENO)) {
-    shell.interactive = true;
-    shell.readline = readline_interactive;
-    run(&shell);
+    is_interactive = true;
+    run(&shell, readline_interactive);
   } else {
     shell.input_fd = STDIN_FILENO;
-    shell.readline = readline_fd;
-    run(&shell);
+    run(&shell, readline_fd);
   }
 
   shell_destroy(&shell);
-  return shell.status;
+  return exit_status;
 }

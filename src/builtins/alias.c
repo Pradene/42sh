@@ -7,10 +7,12 @@
 #include <string.h>
 
 void builtin_alias(AstNode *node, Shell *shell) {
+  (void)shell;
+
   size_t argc = vec_size(&node->command.args);
   if (argc == 1) {
-    for (size_t i = 0; i < shell->aliases.capacity; ++i) {
-      HashEntry *entry = shell->aliases.buckets[i];
+    for (size_t i = 0; i < aliases->capacity; ++i) {
+      HashEntry *entry = aliases->buckets[i];
 
       while (entry) {
         char *name = entry->key;
@@ -26,7 +28,7 @@ void builtin_alias(AstNode *node, Shell *shell) {
   for (size_t i = 1; i < argc; ++i) {
     char *equal = strchr(args[i], '=');
     if (!equal) {
-      HashEntry *entry = ht_get(&shell->aliases, args[i]);
+      HashEntry *entry = ht_get(aliases, args[i]);
       if (entry) {
         char *name = entry->key;
         char *value = entry->value;
@@ -35,7 +37,7 @@ void builtin_alias(AstNode *node, Shell *shell) {
     } else {
       char *name = strndup(args[i], equal - args[i]);
       char *value = strdup(equal + 1);
-      ht_insert(&shell->aliases, name, value);
+      ht_insert(aliases, name, value);
     }
   }
 }

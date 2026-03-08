@@ -6,14 +6,15 @@
 #include <stdio.h>
 
 void builtin_set(AstNode *node, Shell *shell) {
+  (void)shell;
   size_t argc = vec_size(&node->command.args);
   if (argc != 1) {
     fprintf(stderr, "set: usage: set\n");
     return;
   }
 
-  for (size_t i = 0; i < shell->environment.capacity; ++i) {
-    HashEntry *entry = shell->environment.buckets[i];
+  for (size_t i = 0; i < environ->capacity; ++i) {
+    HashEntry *entry = environ->buckets[i];
 
     while (entry) {
       Variable *v = entry->value;

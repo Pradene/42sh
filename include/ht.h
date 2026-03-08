@@ -5,22 +5,24 @@
 #include <stdbool.h>
 
 typedef struct HashEntry {
-  char *key;
-  void *value;
+  char             *key;
+  void             *value;
   struct HashEntry *next;
 } HashEntry;
 
 typedef struct {
   HashEntry **buckets;
-  size_t size;
-  size_t capacity;
+  size_t      size;
+  size_t      capacity;
   
-  size_t value_size;
-  void (*free)(void *);
+  void        (*free)(void *);
 } HashTable;
 
-void ht_insert(HashTable *ht, char *key, void *value);
-bool ht_contains(const HashTable* table, const char *key);
+HashTable *ht_with_capacity(const size_t capacity);
+void       ht_insert(HashTable *ht, const char *key, void *value);
+bool       ht_contains(const HashTable* table, const char *key);
 HashEntry *ht_get(const HashTable *ht, const char *key);
-void ht_remove(HashTable *ht, const char *key);
-void ht_clear(HashTable *ht);
+void       ht_remove(HashTable *ht, const char *key);
+void      *ht_pop(HashTable *ht, const char *key);
+void       ht_clear(HashTable *ht);
+void       ht_destroy(HashTable *ht);

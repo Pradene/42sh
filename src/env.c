@@ -12,17 +12,15 @@ void env_variable_free(void *value) {
   free(variable);
 }
 
-StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
+StatusCode environ_from_envp(HashTable *env, const char **envp) {
   for (size_t i = 0; envp[i]; ++i) {
     char *equal = strchr(envp[i], '=');
     if (!equal) {
       continue;
     } else {
-      size_t key_length = equal - envp[i];
-      char *key = strndup(envp[i], key_length);
+      *equal = '\0';
       char *content = strdup(equal + 1);
       if (strcmp(content, "") == 0) {
-        free(key);
         free(content);
         continue;
       }
@@ -31,7 +29,7 @@ StatusCode env_from_cstr_array(HashTable *env, const char **envp) {
       value->content = content;
       value->exported = true;
       value->readonly = false;
-      ht_insert(env, key, value);
+      ht_insert(env, envp[i], value);
     }
   }
 

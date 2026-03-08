@@ -7,11 +7,12 @@
 #include <ctype.h>
 
 void builtin_export(AstNode *node, Shell *shell) {
+  (void)shell;
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
   if (argc == 1) {
-    env_print(&shell->environment);
+    env_print(environ);
     return;
   }
 
@@ -25,7 +26,11 @@ void builtin_export(AstNode *node, Shell *shell) {
 
     char *equal = strchr(arg, '=');
     if (!equal) {
-      continue;
+      HashEntry *entry = ht_get(environ, arg);
+      if (!entry) {
+        continue;
+      }
+      ((Variable *)entry->value)->exported = true;
     } else {
       size_t key_length = equal - arg;
       char *key = strndup(arg, key_length);
@@ -40,7 +45,7 @@ void builtin_export(AstNode *node, Shell *shell) {
       value->content = content;
       value->exported = true;
       value->readonly = false;
-      ht_insert(&shell->environment, key, value);
+      ht_insert(environ, key, value);
     }
   }
 }

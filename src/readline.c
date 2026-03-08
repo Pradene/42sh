@@ -1,3 +1,4 @@
+#include "42sh.h"
 #include "sb.h"
 #include "shell.h"
 
@@ -5,7 +6,8 @@
 #include <unistd.h>
 
 char *readline_interactive(Shell *shell) {
-  const char *prompt = shell->input.size == 0 ? "$ " : "> ";
+  (void)shell;
+  const char *prompt = !is_continuation ? "$ " : "> ";
   write(STDERR_FILENO, prompt, strlen(prompt));
 
   StringBuffer sb = {0};

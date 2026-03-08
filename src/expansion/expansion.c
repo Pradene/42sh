@@ -4,7 +4,7 @@
 #include "vec.h"
 #include "42sh.h"
 
-void expand_node(Shell *shell, AstNode *node) {
+void expand_command(AstNode *node, Shell *shell) {
   if (!node) {
     return;
   }
@@ -15,12 +15,12 @@ void expand_node(Shell *shell, AstNode *node) {
   case NODE_OR:
   case NODE_SEMICOLON:
   case NODE_BACKGROUND:
-    expand_node(shell, node->operator.left);
-    expand_node(shell, node->operator.right);
+    expand_command(node->operator.left, shell);
+    expand_command(node->operator.right, shell);
     return;
   case NODE_BRACE:
   case NODE_PAREN:
-    expand_node(shell, node->group.inner);
+    expand_command(node->group.inner, shell);
 
     expansion(node, shell);
     splitting(node);
@@ -33,8 +33,4 @@ void expand_node(Shell *shell, AstNode *node) {
     stripping(node);
     return;
   }
-}
-
-void expand_command(Shell *shell) {
-  expand_node(shell, shell->command);
 }

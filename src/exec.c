@@ -14,8 +14,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-void execute_node(AstNode *node, Shell *shell);
-
 static bool is_executable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
@@ -24,7 +22,12 @@ static bool is_executable(const char *path) {
   return false;
 }
 
-char *find_command_path(const char *cmd, const char *paths) {
+char *find_command_path(const char *cmd) {
+  char *paths = env_find(environ, "PATH");
+  if (!paths) {
+    return NULL;
+  }
+
   if (strchr(cmd, '/')) {
     if (is_executable(cmd)) {
       return strdup(cmd);
@@ -66,6 +69,14 @@ char *find_command_path(const char *cmd, const char *paths) {
 void apply_assignments(Assignments *assignments) {
   if (!assignments || !vec_size(assignments)) {
     return;
+  }
+
+  vec_foreach(Assignment, assignment, assignments) {
+    Variable *value = (Variable *)malloc(sizeof(Variable));
+    value->content = strdup(assignment->value);
+    value->exported = false;
+    value->readonly = false;
+    ht_insert(environ, assignment->name, value);
   }
 }
 
@@ -140,14 +151,11 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     return;
   } else if (pid == 0) {
     char **args = node->command.args.data;
-    char *paths = env_find(&shell->environment, "PATH");
-    if (!paths) {
-      fprintf(stderr, "PATH is not set\n");
-      shell_destroy(shell);
-      exit(EXIT_FAILURE);
-    }
 
-    char *path = find_command_path(args[0], paths);
+    apply_redirs(&node->command.redirs);
+    apply_assignments(&node->command.assigns);
+
+    char *path = find_command_path(args[0]);
     if (!path) {
       fprintf(stderr, "Command not found: %s\n", args[0]);
       shell_destroy(shell);
@@ -161,12 +169,9 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGQUIT, &sa, NULL);
 
-    apply_redirs(&node->command.redirs);
-    apply_assignments(&node->command.assigns);
-
     vec_push(&node->command.args, NULL);
 
-    char **envp = env_to_cstr_array(&shell->environment);
+    char **envp = env_to_cstr_array(environ);
     if (!envp) {
       exit(EXIT_FAILURE);
     }
@@ -188,9 +193,9 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     waitpid(pid, &status, 0);
 
     if (WIFEXITED(status)) {
-      shell->status = WEXITSTATUS(status);
+      exit_status = WEXITSTATUS(status);
     } else if (WIFSIGNALED(status)) {
-      shell->status = 128 + WTERMSIG(status);
+      exit_status = 128 + WTERMSIG(status);
     }
 
     if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
@@ -199,7 +204,7 @@ void execute_simple_command(AstNode *node, Shell *shell) {
   }
 }
 
-void execute_pipe(AstNode *root, Shell *shell) {
+void execute_pipe(AstNode *node, Shell *shell) {
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     perror("pipe");
@@ -217,8 +222,8 @@ void execute_pipe(AstNode *root, Shell *shell) {
     dup2(pipefd[1], STDOUT_FILENO);
     close(pipefd[1]);
 
-    execute_node(root->operator.left, shell);
-    int status = shell->status;
+    execute_command(node->operator.left, shell);
+    int status = exit_status;
 
     shell_destroy(shell);
 
@@ -237,8 +242,8 @@ void execute_pipe(AstNode *root, Shell *shell) {
     dup2(pipefd[0], STDIN_FILENO);
     close(pipefd[0]);
 
-    execute_node(root->operator.right, shell);
-    int status = shell->status;
+    execute_command(node->operator.right, shell);
+    int status = exit_status;
 
     shell_destroy(shell);
 
@@ -252,9 +257,9 @@ void execute_pipe(AstNode *root, Shell *shell) {
   waitpid(pid_left, NULL, 0);
   waitpid(pid_right, &status, 0);
   if (WIFEXITED(status)) {
-    shell->status = WEXITSTATUS(status);
+    exit_status = WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
-    shell->status = 128 + WTERMSIG(status);
+    exit_status = 128 + WTERMSIG(status);
   }
 }
 
@@ -273,19 +278,19 @@ void execute_subshell(AstNode *node, Shell *shell) {
 
     apply_redirs(&node->group.redirs);
 
-    execute_node(node->group.inner, shell);
+    execute_command(node->group.inner, shell);
 
     shell_destroy(shell);
 
-    exit(shell->status);
+    exit(exit_status);
   } else {
     int status;
     waitpid(pid, &status, 0);
 
     if (WIFEXITED(status)) {
-      shell->status = WEXITSTATUS(status);
+      exit_status = WEXITSTATUS(status);
     } else if (WIFSIGNALED(status)) {
-      shell->status = 128 + WTERMSIG(status);
+      exit_status = 128 + WTERMSIG(status);
     }
 
     if (WIFSIGNALED(status) && WTERMSIG(status) == SIGINT) {
@@ -294,22 +299,22 @@ void execute_subshell(AstNode *node, Shell *shell) {
   }
 }
 
-void execute_node(AstNode *node, Shell *shell) {
+void execute_command(AstNode *node, Shell *shell) {
   if (!node) {
     return;
   }
 
   switch (node->type) {
   case NODE_AND:
-    execute_node(node->operator.left, shell);
-    if (shell->status == 0) {
-      execute_node(node->operator.right, shell);
+    execute_command(node->operator.left, shell);
+    if (exit_status == 0) {
+      execute_command(node->operator.right, shell);
     }
     return;
   case NODE_OR:
-    execute_node(node->operator.left, shell);
-    if (shell->status != 0) {
-      execute_node(node->operator.right, shell);
+    execute_command(node->operator.left, shell);
+    if (exit_status != 0) {
+      execute_command(node->operator.right, shell);
     }
     return;
   case NODE_PIPE: {
@@ -318,11 +323,11 @@ void execute_node(AstNode *node, Shell *shell) {
   }
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    execute_node(node->operator.left, shell);
-    execute_node(node->operator.right, shell);
+    execute_command(node->operator.left, shell);
+    execute_command(node->operator.right, shell);
     return;
   case NODE_BRACE:
-    execute_node(node->group.inner, shell);
+    execute_command(node->group.inner, shell);
     return;
   case NODE_PAREN:
     execute_subshell(node, shell);
@@ -331,8 +336,4 @@ void execute_node(AstNode *node, Shell *shell) {
     execute_simple_command(node, shell);
     return;
   }
-}
-
-void execute_command(Shell *shell) {
-  execute_node(shell->command, shell);
 }
