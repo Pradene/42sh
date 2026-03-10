@@ -1,4 +1,3 @@
-#include "shell.h"
 #include "42sh.h"
 #include "ast.h"
 #include "env.h"
@@ -65,8 +64,7 @@ static char *expand(const char *s) {
   return sb_as_cstr(&sb);
 }
 
-void expansion(AstNode *root, const Shell *shell) {
-  (void)shell;
+void expansion(AstNode *root) {
   if (!root) {
     return;
   }

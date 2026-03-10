@@ -5,8 +5,7 @@
 
 #include <stdio.h>
 
-void builtin_set(AstNode *node, Shell *shell) {
-  (void)shell;
+void builtin_set(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
   if (argc != 1) {
     fprintf(stderr, "set: usage: set\n");

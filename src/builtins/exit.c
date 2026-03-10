@@ -28,7 +28,7 @@ static bool is_numeric(const char *s) {
   return true;
 }
 
-void builtin_exit(AstNode *node, Shell *shell) {
+void builtin_exit(AstNode *node) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 
@@ -42,7 +42,7 @@ void builtin_exit(AstNode *node, Shell *shell) {
   if (argc == 2) {
     if (!is_numeric(args[1])) {
       fprintf(stderr, "exit: numeric argument required\n");
-      shell_destroy(shell);
+      cleanup();
       exit(2);
     }
 
@@ -50,14 +50,14 @@ void builtin_exit(AstNode *node, Shell *shell) {
     long long value = strtoll(args[1], NULL, 10);
     if (errno == ERANGE) {
       fprintf(stderr, "exit: numeric argument required\n");
-      shell_destroy(shell);
+      cleanup();
       exit(2);
     }
 
-    shell_destroy(shell);
+    cleanup();
     exit((uint8_t)value);
   }
 
-  shell_destroy(shell);
+  cleanup();
   exit(0);
 }

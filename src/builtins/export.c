@@ -6,8 +6,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-void builtin_export(AstNode *node, Shell *shell) {
-  (void)shell;
+void builtin_export(AstNode *node) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 

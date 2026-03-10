@@ -136,13 +136,13 @@ void apply_redirs(Redirs *redirs) {
   }
 }
 
-void execute_simple_command(AstNode *node, Shell *shell) {
+void execute_simple_command(AstNode *node) {
   if (!node || node->type != NODE_COMMAND) {
     return;
   }
 
   if (vec_size(&node->command.args) == 0 || is_builtin(node->command.args.data[0])) {
-    exec_builtin(node, shell);
+    exec_builtin(node);
     return;
   }
 
@@ -158,7 +158,7 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     char *path = find_command_path(args[0]);
     if (!path) {
       fprintf(stderr, "Command not found: %s\n", args[0]);
-      shell_destroy(shell);
+      cleanup();
       exit(EXIT_FAILURE);
     }
 
@@ -185,11 +185,11 @@ void execute_simple_command(AstNode *node, Shell *shell) {
     free(envp);
     free(path);
 
-    shell_destroy(shell);
+    cleanup();
 
     exit(EXIT_FAILURE);
   } else {
-    int status;
+    int status = 0;
     waitpid(pid, &status, 0);
 
     if (WIFEXITED(status)) {
@@ -204,7 +204,7 @@ void execute_simple_command(AstNode *node, Shell *shell) {
   }
 }
 
-void execute_pipe(AstNode *node, Shell *shell) {
+void execute_pipe(AstNode *node) {
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     perror("pipe");
@@ -222,10 +222,10 @@ void execute_pipe(AstNode *node, Shell *shell) {
     dup2(pipefd[1], STDOUT_FILENO);
     close(pipefd[1]);
 
-    execute_command(node->operator.left, shell);
+    execute_command(node->operator.left);
     int status = exit_status;
 
-    shell_destroy(shell);
+    cleanup();
 
     exit(status);
   }
@@ -242,10 +242,10 @@ void execute_pipe(AstNode *node, Shell *shell) {
     dup2(pipefd[0], STDIN_FILENO);
     close(pipefd[0]);
 
-    execute_command(node->operator.right, shell);
+    execute_command(node->operator.right);
     int status = exit_status;
 
-    shell_destroy(shell);
+    cleanup();
 
     exit(status);
   }
@@ -263,7 +263,7 @@ void execute_pipe(AstNode *node, Shell *shell) {
   }
 }
 
-void execute_subshell(AstNode *node, Shell *shell) {
+void execute_subshell(AstNode *node) {
   pid_t pid = fork();
 
   if (pid < 0) {
@@ -278,9 +278,9 @@ void execute_subshell(AstNode *node, Shell *shell) {
 
     apply_redirs(&node->group.redirs);
 
-    execute_command(node->group.inner, shell);
+    execute_command(node->group.inner);
 
-    shell_destroy(shell);
+    cleanup();
 
     exit(exit_status);
   } else {
@@ -299,41 +299,41 @@ void execute_subshell(AstNode *node, Shell *shell) {
   }
 }
 
-void execute_command(AstNode *node, Shell *shell) {
+void execute_command(AstNode *node) {
   if (!node) {
     return;
   }
 
   switch (node->type) {
   case NODE_AND:
-    execute_command(node->operator.left, shell);
+    execute_command(node->operator.left);
     if (exit_status == 0) {
-      execute_command(node->operator.right, shell);
+      execute_command(node->operator.right);
     }
     return;
   case NODE_OR:
-    execute_command(node->operator.left, shell);
+    execute_command(node->operator.left);
     if (exit_status != 0) {
-      execute_command(node->operator.right, shell);
+      execute_command(node->operator.right);
     }
     return;
   case NODE_PIPE: {
-    execute_pipe(node, shell);
+    execute_pipe(node);
     return;
   }
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    execute_command(node->operator.left, shell);
-    execute_command(node->operator.right, shell);
+    execute_command(node->operator.left);
+    execute_command(node->operator.right);
     return;
   case NODE_BRACE:
-    execute_command(node->group.inner, shell);
+    execute_command(node->group.inner);
     return;
   case NODE_PAREN:
-    execute_subshell(node, shell);
+    execute_subshell(node);
     return;
   case NODE_COMMAND:
-    execute_simple_command(node, shell);
+    execute_simple_command(node);
     return;
   }
 }

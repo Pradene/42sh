@@ -9,9 +9,7 @@
 
 #define MAX_PATH 4096
 
-void builtin_cd(AstNode *node, Shell *shell) {
-  (void)shell;
-
+void builtin_cd(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
   if (argc > 2) {
     exit_status = 1;

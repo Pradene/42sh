@@ -4,8 +4,7 @@
 #include "vec.h"
 #include <stdio.h>
 
-void builtin_unalias(AstNode *node, Shell *shell) {
-  (void)shell;
+void builtin_unalias(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
   if (argc == 1) {
     fprintf(stderr, "unalias: usage: unalias name [name ...]\n");

@@ -6,9 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void builtin_alias(AstNode *node, Shell *shell) {
-  (void)shell;
-
+void builtin_alias(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
   if (argc == 1) {
     for (size_t i = 0; i < aliases->capacity; ++i) {

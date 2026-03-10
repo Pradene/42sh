@@ -2,7 +2,6 @@
 
 #include "ast.h"
 #include "lexer.h"
-#include "shell.h"
 #include "status.h"
 
 typedef struct {

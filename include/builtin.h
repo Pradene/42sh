@@ -7,18 +7,18 @@
 
 typedef struct {
   const char *name;
-  void (*fn)(AstNode *, Shell *);
+  void (*fn)(AstNode *);
 } Builtin;
 
 bool is_builtin(const char *cmd);
-void exec_builtin(AstNode *node, Shell *shell);
+void exec_builtin(AstNode *node);
 
-void builtin_exit(AstNode *node, Shell *shell);
-void builtin_export(AstNode *node, Shell *shell);
-void builtin_type(AstNode *node, Shell *shell);
-void builtin_echo(AstNode *node, Shell *shell);
-void builtin_cd(AstNode *node, Shell *shell);
-void builtin_set(AstNode *node, Shell *shell);
-void builtin_unset(AstNode *node, Shell *shell);
-void builtin_alias(AstNode *node, Shell *shell);
-void builtin_unalias(AstNode *node, Shell *shell);
+void builtin_exit(AstNode *node);
+void builtin_export(AstNode *node);
+void builtin_type(AstNode *node);
+void builtin_echo(AstNode *node);
+void builtin_cd(AstNode *node);
+void builtin_set(AstNode *node);
+void builtin_unset(AstNode *node);
+void builtin_alias(AstNode *node);
+void builtin_unalias(AstNode *node);

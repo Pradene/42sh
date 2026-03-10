@@ -8,8 +8,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-void builtin_type(AstNode *node, Shell *shell) {
-  (void)shell;
+void builtin_type(AstNode *node) {
   char **args = node->command.args.data;
   size_t argc = vec_size(&node->command.args);
 

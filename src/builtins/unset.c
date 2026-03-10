@@ -4,8 +4,7 @@
 
 #include <stdio.h>
 
-void builtin_unset(AstNode *node, Shell *shell) {
-  (void)shell;
+void builtin_unset(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
   if (argc == 1) {
     fprintf(stderr, "unset: usage: unset name [name ...]\n");

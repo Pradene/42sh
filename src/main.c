@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 HashTable *environ = NULL;
 HashTable *aliases = NULL;
@@ -25,6 +26,15 @@ bool is_continuation = false;
 
 AstNode *last_command = NULL;
 
+char *input_string = NULL;
+int   input_fd = STDIN_FILENO;
+
+void cleanup() {
+  ht_destroy(environ);
+  ht_destroy(aliases);
+  ast_free(last_command);
+}
+
 static bool opt_has(const char *arg, char opt) {
   if (!arg || arg[0] != '-' || arg[1] == '-' || arg[1] == '\0') {
     return false;
@@ -33,15 +43,35 @@ static bool opt_has(const char *arg, char opt) {
   }
 }
 
-static void run(Shell *shell, char *(*readline)(Shell *shell)) {
+static void run(char *(*getline)()) {
   StringBuffer sb = {0};
-  
-  while (true) {
-    AstNode *command = NULL;
+  AstNode *command = NULL;
 
-    char *line = readline(shell);
+  while (true) {
+    errno = 0;
+    command = NULL;
+    last_command = NULL;
+
+    char *line = getline();
     if (!line) {
-      break;
+      if (is_interactive) {
+        if (errno == EINTR) {
+          if (is_continuation) {
+            is_continuation = false;
+            sb_free(&sb);
+          }
+          
+          continue;
+        } else if (errno == 0 && is_continuation) {
+          is_continuation = false;
+          sb_free(&sb);
+          continue;
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
     }
 
     sb_append(&sb, line);
@@ -53,9 +83,9 @@ static void run(Shell *shell, char *(*readline)(Shell *shell)) {
     }
 
     char *expanded = expand_alias(sb_as_cstr(&sb));
-
     StatusCode status = parse((const char *)expanded, &command);
     free(expanded);
+
     if (status == INCOMPLETE_INPUT) {
       is_continuation = true;
       continue;
@@ -70,16 +100,14 @@ static void run(Shell *shell, char *(*readline)(Shell *shell)) {
 
     last_command = command;
 
-    expand_command(command, shell);
-    execute_command(command, shell);
+    expand_command(command);
+    execute_command(command);
 
     ast_free(command);
   }
 }
 
 int main(int argc, char **argv, char **envp) {
-  Shell shell = {0};
-
   environ = ht_with_capacity(32);
   environ->free = env_variable_free;
 
@@ -103,17 +131,17 @@ int main(int argc, char **argv, char **envp) {
       ++argv;
       if (argc == 0) {
         fprintf(stderr, "42sh: -c: option requires an argument\n");
-        shell_destroy(&shell);
+        cleanup();
         return 2;
       }
-      shell.input_src = *argv;
-      run(&shell, readline_string);
-      shell_destroy(&shell);
+      input_string = *argv;
+      run(getline_from_string);
+      cleanup();
       return exit_status;
     }
 
     fprintf(stderr, "42sh: %s: invalid option\n", *argv);
-    shell_destroy(&shell);
+    cleanup();
     return 2;
   }
 
@@ -121,20 +149,34 @@ int main(int argc, char **argv, char **envp) {
     int fd = open(*argv, O_RDONLY);
     if (fd < 0) {
       fprintf(stderr, "42sh: %s: cannot open file\n", *argv);
-      shell_destroy(&shell);
+      cleanup();
       return 2;
     }
-    shell.input_fd = fd;
-    run(&shell, readline_fd);
+    input_fd = fd;
+    run(getline_from_fd);
     close(fd);
   } else if (isatty(STDIN_FILENO)) {
     is_interactive = true;
-    run(&shell, readline_interactive);
+    input_fd = STDIN_FILENO;
+
+    struct sigaction sa = {0};
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = sigint_handler;
+    sigaction(SIGINT, &sa, NULL);
+
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGQUIT, &sa, NULL);
+    sigaction(SIGTSTP, &sa, NULL);
+
+    run(getline_from_fd);
   } else {
-    shell.input_fd = STDIN_FILENO;
-    run(&shell, readline_fd);
+    input_fd = STDIN_FILENO;
+    run(getline_from_fd);
   }
 
-  shell_destroy(&shell);
+  cleanup();
   return exit_status;
 }
