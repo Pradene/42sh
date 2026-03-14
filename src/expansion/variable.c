@@ -1,9 +1,11 @@
 #include "42sh.h"
 #include "ast.h"
 #include "env.h"
+#include "sb.h"
 #include "vec.h"
 
 #include <ctype.h>
+#include <stdio.h>
 
 static char *expand(const char *s) {
   StringBuffer sb = {0};
@@ -27,11 +29,17 @@ static char *expand(const char *s) {
           size_t v_length = i - v_start;
           char *v_name = strndup(s + v_start, v_length);
           if (v_name) {
-            const char *v_value = env_find(environ, v_name);
-            if (v_value) {
-              sb_append(&sb, v_value);
+            if (!strcmp(v_name, "?")) {
+              char buf[4];
+              snprintf(buf, sizeof(buf), "%d", exit_status);
+              sb_append(&sb, buf);
+            } else {
+              const char *v_value = env_find(environ, v_name);
+              if (v_value) {
+                sb_append(&sb, v_value);
+              }
+              free(v_name);
             }
-            free(v_name);
           }
           ++i;
         } else {
@@ -52,6 +60,11 @@ static char *expand(const char *s) {
           }
           free(v_name);
         }
+      } else if (s[i] == '?') {
+        char buf[4];
+        snprintf(buf, sizeof(buf), "%d", exit_status);
+        sb_append(&sb, buf);
+        ++i;
       } else {
         sb_append_char(&sb, '$');
       }

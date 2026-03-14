@@ -4,10 +4,10 @@
 #include "status.h"
 #include "vec.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ctype.h>
 
 static StatusCode parse_redir(ParserState *state, Redir *redir);
 static StatusCode parse_simple_command(ParserState *state, AstNode **root);
@@ -155,13 +155,26 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
 
   RedirType type;
   switch (op_token.type) {
-  case TOKEN_REDIRECT_IN:     type = REDIRECT_IN;      break;
-  case TOKEN_HEREDOC:         type = REDIRECT_HEREDOC; break;
-  case TOKEN_REDIRECT_OUT:    type = REDIRECT_OUT;     break;
-  case TOKEN_REDIRECT_APPEND: type = REDIRECT_APPEND;  break;
-  case TOKEN_REDIRECT_IN_FD:  type = REDIRECT_IN_FD;   break;
-  case TOKEN_REDIRECT_OUT_FD: type = REDIRECT_OUT_FD;  break;
-  default:                    return UNEXPECTED_TOKEN;
+  case TOKEN_REDIRECT_IN:
+    type = REDIRECT_IN;
+    break;
+  case TOKEN_HEREDOC:
+    type = REDIRECT_HEREDOC;
+    break;
+  case TOKEN_REDIRECT_OUT:
+    type = REDIRECT_OUT;
+    break;
+  case TOKEN_REDIRECT_APPEND:
+    type = REDIRECT_APPEND;
+    break;
+  case TOKEN_REDIRECT_IN_FD:
+    type = REDIRECT_IN_FD;
+    break;
+  case TOKEN_REDIRECT_OUT_FD:
+    type = REDIRECT_OUT_FD;
+    break;
+  default:
+    return UNEXPECTED_TOKEN;
   }
 
   parser_advance(state);

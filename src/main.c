@@ -1,11 +1,11 @@
 #include "42sh.h"
 #include "ast.h"
-#include "lexer.h"
 #include "parser.h"
 #include "sb.h"
 #include "status.h"
 #include "utils.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stddef.h>
@@ -13,8 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <termios.h>
 #include <unistd.h>
-#include <errno.h>
 
 HashTable *environ = NULL;
 HashTable *aliases = NULL;
@@ -27,9 +27,12 @@ bool is_continuation = false;
 AstNode *last_command = NULL;
 
 char *input_string = NULL;
-int   input_fd = STDIN_FILENO;
+int input_fd = STDIN_FILENO;
+
+struct termios term_attr;
 
 void cleanup() {
+  tcsetattr(STDIN_FILENO, TCSANOW, &term_attr);
   ht_destroy(environ);
   ht_destroy(aliases);
   ast_free(last_command);
@@ -60,7 +63,7 @@ static void run(char *(*getline)()) {
             is_continuation = false;
             sb_free(&sb);
           }
-          
+
           continue;
         } else if (errno == 0 && is_continuation) {
           is_continuation = false;
@@ -158,6 +161,13 @@ int main(int argc, char **argv, char **envp) {
   } else if (isatty(STDIN_FILENO)) {
     is_interactive = true;
     input_fd = STDIN_FILENO;
+
+    tcgetattr(STDIN_FILENO, &term_attr);
+
+    struct termios raw = term_attr;
+    raw.c_lflag &= ~ECHOCTL;
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 
     struct sigaction sa = {0};
     sigemptyset(&sa.sa_mask);

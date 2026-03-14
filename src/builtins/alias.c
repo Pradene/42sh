@@ -33,9 +33,13 @@ void builtin_alias(AstNode *node) {
         printf("%s='%s'\n", name, value);
       }
     } else {
-      char *name = strndup(args[i], equal - args[i]);
+      *equal = '\0';
+
+      char *name = args[i];
       char *value = strdup(equal + 1);
       ht_insert(aliases, name, value);
+
+      *equal = '=';
     }
   }
 }

@@ -20,7 +20,6 @@ const char *token_type_str(const TokenType type) {
     [TOKEN_SEMICOLON] = "SEMICOLON",
     [TOKEN_AND] = "AND",
     [TOKEN_OR] = "OR",
-    [TOKEN_SUBSTITUTION] = "SUBSTITUTION",
     [TOKEN_WORD] = "WORD",
     [TOKEN_REDIRECT_OUT] = "REDIRECT_OUT",
     [TOKEN_REDIRECT_APPEND] = "REDIRECT_APPEND",
@@ -55,7 +54,6 @@ Token next_token(const char *s, size_t *i) {
     {"<&", 2, TOKEN_REDIRECT_IN_FD},
     {"&&", 2, TOKEN_AND},
     {"||", 2, TOKEN_OR},
-    {"$(", 2, TOKEN_SUBSTITUTION},
     {"|", 1, TOKEN_PIPE},
     {"<", 1, TOKEN_REDIRECT_IN},
     {">", 1, TOKEN_REDIRECT_OUT},
@@ -119,6 +117,20 @@ Token next_token(const char *s, size_t *i) {
           } else {
             sb_free(&sb);
             return (Token){TOKEN_ERROR, *i, NULL};
+          }
+        } else if (s[*i] == '(') {
+          int32_t depth = 1;
+          sb_append_char(&sb, s[*i]);
+          ++(*i);
+          while (depth) {
+            if (s[*i] == '(') {
+              ++depth;
+            } else if (s[*i] == ')') {
+              --depth;
+            }
+            
+            sb_append_char(&sb, s[*i]);
+            ++(*i);
           }
         } else {
           while (s[*i] && !is_delimiter(s[*i])) {

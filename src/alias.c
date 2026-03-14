@@ -1,6 +1,8 @@
 #include "42sh.h"
+#include "utils.h"
 
 #include <ctype.h>
+#include <stdio.h>
 
 char *expand_alias(const char *input) {
   StringBuffer sb = {0};
@@ -37,20 +39,34 @@ char *expand_alias(const char *input) {
         ++i;
       }
 
+      command_pos = false;
+
       char *word = strndup(input + word_start, i - word_start);
-      if (!word) { sb_free(&sb); return NULL; }
+      if (!word) {
+        sb_free(&sb);
+        return NULL;
+      }
 
-      const char *replacement = (const char *)ht_get(aliases, word);
+      HashEntry *entry = ht_get(aliases, word);
       free(word);
-
-      if (replacement) {
-        sb_append(&sb, replacement);
-      } else {
+      if (!entry) {
         for (size_t j = word_start; j < i; ++j) {
           sb_append_char(&sb, input[j]);
         }
+
+        continue;
       }
-      command_pos = false;
+      
+      char *replacement = entry->value;
+
+      if (replacement) {
+        sb_append(&sb, replacement);
+        
+        if (strendswith(replacement, " ")) {
+          command_pos = true;
+        }
+      }
+
       continue;
     }
 
