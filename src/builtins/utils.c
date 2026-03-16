@@ -17,6 +17,7 @@ static Builtin builtins[] = {
   { "cd", builtin_cd },
   { "set", builtin_set },
   { "unset", builtin_unset },
+  { "hash", builtin_hash },
   { NULL, NULL }
 };
 
@@ -51,7 +52,7 @@ void exec_builtin(AstNode *node) {
     old_values = calloc(vec_size(assigns), sizeof(Variable *));
     for (size_t i = 0; i < vec_size(assigns); ++i) {
       const char *name  = assigns->data[i].name;
-      HashEntry  *entry = ht_get(environ, name);
+      HtEntry  *entry = ht_get(environ, name);
       if (entry) {
         Variable *v    = entry->value;
         Variable *copy = malloc(sizeof(Variable));

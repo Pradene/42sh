@@ -1,9 +1,9 @@
 #include "42sh.h"
 #include "ast.h"
-#include "vec.h"
 #include "builtin.h"
 #include "env.h"
 #include "vec.h"
+#include "utils.h"
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -146,6 +146,24 @@ void execute_simple_command(AstNode *node) {
     return;
   }
 
+  char *path = NULL;
+  
+  CacheEntry *cached = hash_get(hash, node->command.args.data[0]);
+  if (cached) {
+    path = cached->path;
+  } else {
+    path = find_command_path(node->command.args.data[0]);
+    if (!path) {
+      fprintf(stderr, "42sh: %s: command not found\n", node->command.args.data[0]);
+      exit_status = 127;
+      return;
+    }
+    hash_insert(hash, node->command.args.data[0], path);
+    free(path);
+
+    path = hash_get(hash, node->command.args.data[0])->path;
+  }
+
   pid_t pid = fork();
   if (pid < 0) {
     return;
@@ -154,13 +172,6 @@ void execute_simple_command(AstNode *node) {
 
     apply_redirs(&node->command.redirs);
     apply_assignments(&node->command.assigns);
-
-    char *path = find_command_path(args[0]);
-    if (!path) {
-      fprintf(stderr, "Command not found: %s\n", args[0]);
-      cleanup();
-      exit(EXIT_FAILURE);
-    }
 
     struct sigaction sa;
     sigemptyset(&sa.sa_mask);
@@ -183,7 +194,6 @@ void execute_simple_command(AstNode *node) {
       free(envp[i]);
     }
     free(envp);
-    free(path);
 
     cleanup();
 
@@ -191,6 +201,11 @@ void execute_simple_command(AstNode *node) {
   } else {
     int status = 0;
     waitpid(pid, &status, 0);
+
+    CacheEntry *entry = hash_get(hash, node->command.args.data[0]);
+    if (entry) {
+      ++entry->hits;
+    }
 
     if (WIFEXITED(status)) {
       exit_status = WEXITSTATUS(status);

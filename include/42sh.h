@@ -9,6 +9,8 @@
 
 extern HashTable  *environ; // value -> Variable *
 extern HashTable  *aliases; // value -> char *
+extern HashTable  *hash;    // value -> CacheEntry *
+
 extern uint8_t     exit_status;
 extern bool        is_interactive;
 extern bool        is_continuation;
@@ -35,3 +37,13 @@ void splitting(AstNode *root);
 void expand_command(AstNode *root);
 
 void cleanup();
+
+typedef struct {
+  char  *path;
+  size_t hits;
+} CacheEntry;
+
+void        hash_insert(HashTable *ht, const char *key, const char *path);
+CacheEntry *hash_get(HashTable *ht, const char *key);
+void        hash_entry_free(void *value);
+void        hash_clear(HashTable *ht);

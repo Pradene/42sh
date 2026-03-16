@@ -4,14 +4,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct HashEntry {
+typedef struct HtEntry {
   char             *key;
   void             *value;
-  struct HashEntry *next;
-} HashEntry;
+  struct HtEntry *next;
+} HtEntry;
 
 typedef struct {
-  HashEntry **buckets;
+  HtEntry **buckets;
   size_t      size;
   size_t      capacity;
   
@@ -21,7 +21,7 @@ typedef struct {
 HashTable *ht_with_capacity(const size_t capacity);
 void       ht_insert(HashTable *ht, const char *key, void *value);
 bool       ht_contains(const HashTable* table, const char *key);
-HashEntry *ht_get(const HashTable *ht, const char *key);
+HtEntry   *ht_get(const HashTable *ht, const char *key);
 void       ht_remove(HashTable *ht, const char *key);
 void      *ht_pop(HashTable *ht, const char *key);
 void       ht_clear(HashTable *ht);

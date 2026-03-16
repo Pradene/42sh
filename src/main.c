@@ -18,6 +18,7 @@
 
 HashTable *environ = NULL;
 HashTable *aliases = NULL;
+HashTable *hash = NULL;
 
 uint8_t exit_status = 0;
 
@@ -32,9 +33,14 @@ int input_fd = STDIN_FILENO;
 struct termios term_attr;
 
 void cleanup() {
-  tcsetattr(STDIN_FILENO, TCSANOW, &term_attr);
+  if (is_interactive) {
+    tcsetattr(STDIN_FILENO, TCSANOW, &term_attr);
+  }
+
+  ht_destroy(hash);
   ht_destroy(environ);
   ht_destroy(aliases);
+
   ast_free(last_command);
 }
 
@@ -113,6 +119,9 @@ static void run(char *(*getline)()) {
 int main(int argc, char **argv, char **envp) {
   environ = ht_with_capacity(32);
   environ->free = env_variable_free;
+
+  hash = ht_with_capacity(32);
+  hash->free = hash_entry_free;
 
   aliases = ht_with_capacity(32);
   aliases->free = free;

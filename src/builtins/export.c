@@ -25,7 +25,7 @@ void builtin_export(AstNode *node) {
 
     char *equal = strchr(arg, '=');
     if (!equal) {
-      HashEntry *entry = ht_get(environ, arg);
+      HtEntry *entry = ht_get(environ, arg);
       if (!entry) {
         continue;
       }

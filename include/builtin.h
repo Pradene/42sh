@@ -22,3 +22,4 @@ void builtin_set(AstNode *node);
 void builtin_unset(AstNode *node);
 void builtin_alias(AstNode *node);
 void builtin_unalias(AstNode *node);
+void builtin_hash(AstNode *node);

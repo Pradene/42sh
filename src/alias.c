@@ -47,7 +47,7 @@ char *expand_alias(const char *input) {
         return NULL;
       }
 
-      HashEntry *entry = ht_get(aliases, word);
+      HtEntry *entry = ht_get(aliases, word);
       free(word);
       if (!entry) {
         for (size_t j = word_start; j < i; ++j) {

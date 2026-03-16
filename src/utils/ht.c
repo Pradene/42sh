@@ -14,16 +14,16 @@ uint32_t djb2(const unsigned char *str) {
 }
 
 static bool ht_resize(HashTable *ht, const size_t new_capacity) {
-  HashEntry **new_buckets = calloc(new_capacity, sizeof(HashEntry *));
+  HtEntry **new_buckets = calloc(new_capacity, sizeof(HtEntry *));
   if (!new_buckets) {
     return false;
   }
 
   for (size_t i = 0; i < ht->capacity; ++i) {
-    HashEntry *entry = ht->buckets[i];
+    HtEntry *entry = ht->buckets[i];
 
     while (entry) {
-      HashEntry *next = entry->next;
+      HtEntry *next = entry->next;
       uint32_t hash = djb2((unsigned char *)entry->key) % new_capacity;
       entry->next = new_buckets[hash];
       new_buckets[hash] = entry;
@@ -53,7 +53,7 @@ void ht_insert(HashTable *ht, const char *key, void *value) {
 
   uint32_t hash = djb2((unsigned char *)key) % ht->capacity;
 
-  HashEntry *entry = ht->buckets[hash];
+  HtEntry *entry = ht->buckets[hash];
   while (entry) {
     if (strcmp(entry->key, key) == 0) {
       ht->free(entry->value);
@@ -64,7 +64,7 @@ void ht_insert(HashTable *ht, const char *key, void *value) {
     entry = entry->next;
   }
 
-  entry = (HashEntry *)malloc(sizeof(HashEntry));
+  entry = (HtEntry *)malloc(sizeof(HtEntry));
   if (!entry) {
     return;
   }
@@ -80,7 +80,7 @@ bool ht_contains(const HashTable* ht, const char *key) {
   return ht_get(ht, key) != NULL;
 }
 
-HashEntry *ht_get(const HashTable *ht, const char *key) {
+HtEntry *ht_get(const HashTable *ht, const char *key) {
   if (!ht || ht->capacity == 0) {
     return NULL;
   }
@@ -90,7 +90,7 @@ HashEntry *ht_get(const HashTable *ht, const char *key) {
   }
 
   uint32_t hash = djb2((const unsigned char *)key) % ht->capacity;
-  HashEntry *entry = ht->buckets[hash];
+  HtEntry *entry = ht->buckets[hash];
   while (entry) {
     if (strcmp(entry->key, key) == 0) {
       return entry;
@@ -108,8 +108,8 @@ void ht_remove(HashTable *ht, const char *key) {
 
   uint32_t hash = djb2((const unsigned char *)key) % ht->capacity;
 
-  HashEntry *node = ht->buckets[hash];
-  HashEntry *prev = NULL;
+  HtEntry *node = ht->buckets[hash];
+  HtEntry *prev = NULL;
 
   while (node) {
     if (strcmp(node->key, key) == 0) {
@@ -139,8 +139,8 @@ void *ht_pop(HashTable *ht, const char *key) {
 
   uint32_t hash = djb2((const unsigned char *)key) % ht->capacity;
 
-  HashEntry *node = ht->buckets[hash];
-  HashEntry *prev = NULL;
+  HtEntry *node = ht->buckets[hash];
+  HtEntry *prev = NULL;
 
   while (node) {
     if (strcmp(node->key, key) == 0) {
@@ -171,10 +171,10 @@ void ht_clear(HashTable *ht) {
   }
 
   for (size_t i = 0; i < ht->capacity; ++i) {
-    HashEntry *entry = ht->buckets[i];
+    HtEntry *entry = ht->buckets[i];
 
     while (entry) {
-      HashEntry *next = entry->next;
+      HtEntry *next = entry->next;
       ht->free(entry->value);
       free(entry->key);
       free(entry);

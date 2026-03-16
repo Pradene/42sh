@@ -10,7 +10,7 @@ void builtin_alias(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
   if (argc == 1) {
     for (size_t i = 0; i < aliases->capacity; ++i) {
-      HashEntry *entry = aliases->buckets[i];
+      HtEntry *entry = aliases->buckets[i];
 
       while (entry) {
         char *name = entry->key;
@@ -26,7 +26,7 @@ void builtin_alias(AstNode *node) {
   for (size_t i = 1; i < argc; ++i) {
     char *equal = strchr(args[i], '=');
     if (!equal) {
-      HashEntry *entry = ht_get(aliases, args[i]);
+      HtEntry *entry = ht_get(aliases, args[i]);
       if (entry) {
         char *name = entry->key;
         char *value = entry->value;

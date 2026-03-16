@@ -13,7 +13,7 @@ void builtin_set(AstNode *node) {
   }
 
   for (size_t i = 0; i < environ->capacity; ++i) {
-    HashEntry *entry = environ->buckets[i];
+    HtEntry *entry = environ->buckets[i];
 
     while (entry) {
       Variable *v = entry->value;

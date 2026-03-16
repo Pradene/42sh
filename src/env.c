@@ -44,7 +44,7 @@ char **env_to_cstr_array(const HashTable *env) {
 
   size_t index = 0;
   for (size_t i = 0; i < env->capacity; ++i) {
-    HashEntry *entry = env->buckets[i];
+    HtEntry *entry = env->buckets[i];
     while (entry) {
       Variable *v = (Variable *)entry->value;
       if (v && v->exported) {
@@ -63,7 +63,7 @@ char **env_to_cstr_array(const HashTable *env) {
 }
 
 char *env_find(const HashTable *env, const char *name) {
-  HashEntry *entry = ht_get(env, name);
+  HtEntry *entry = ht_get(env, name);
   return entry ? (char *)((Variable *)(entry->value))->content : NULL;
 }
 
@@ -74,7 +74,7 @@ StatusCode env_unset(HashTable *env, const char *name) {
 
 void env_print(const HashTable *env) {  
   for (size_t i = 0; i < env->capacity; ++i) {
-    HashEntry *entry = env->buckets[i];
+    HtEntry *entry = env->buckets[i];
     while (entry) {
       Variable *v = (Variable *)entry->value;
       if (v && v->exported) {
