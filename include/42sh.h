@@ -22,7 +22,7 @@ void sigint_handler(int code);
 
 void apply_redirs(Redirs *redirs);
 void apply_assignments(Assignments *assignments);
-void execute_command(AstNode *root);
+void execute_command(AstNode *node);
 
 char *find_command_path(const char *cmd);
 
@@ -30,11 +30,12 @@ char *getline_from_fd();
 char *getline_from_string();
 
 char *expand_alias(const char *src);
-void expansion(AstNode *root);
-void stripping(AstNode *root);
-void splitting(AstNode *root);
 
-void expand_command(AstNode *root);
+void variable_expansion(AstNode *node);
+void quotes_removal(AstNode *node);
+void word_splitting(AstNode *node);
+void command_substitution(AstNode *node);
+void expand_command(AstNode *node);
 
 void cleanup();
 

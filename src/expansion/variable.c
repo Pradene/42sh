@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include <stdio.h>
 
-static char *expand(const char *s) {
+static char *expand_variable(const char *s) {
   StringBuffer sb = {0};
 
   if (!s || s[0] == '\0') {
@@ -77,12 +77,12 @@ static char *expand(const char *s) {
   return sb_as_cstr(&sb);
 }
 
-void expansion(AstNode *root) {
-  if (!root) {
+void variable_expansion(AstNode *node) {
+  if (!node) {
     return;
   }
 
-  switch (root->type) {
+  switch (node->type) {
   case NODE_PIPE:
   case NODE_AND:
   case NODE_OR:
@@ -92,11 +92,11 @@ void expansion(AstNode *root) {
 
   case NODE_BRACE:
   case NODE_PAREN:
-    vec_foreach(Redir, redir, &root->group.redirs) {
+    vec_foreach(Redir, redir, &node->group.redirs) {
       if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *expanded = expand(redir->path);
+      char *expanded = expand_variable(redir->path);
       if (expanded) {
         free(redir->path);
         redir->path = expanded;
@@ -106,19 +106,19 @@ void expansion(AstNode *root) {
     return;
 
   case NODE_COMMAND:
-    vec_foreach(char *, arg, &root->command.args) {
-      char *expanded = expand(*arg);
+    vec_foreach(char *, arg, &node->command.args) {
+      char *expanded = expand_variable(*arg);
       if (expanded) {
         free(*arg);
         *arg = expanded;
       }
     }
 
-    vec_foreach(Redir, redir, &root->command.redirs) {
+    vec_foreach(Redir, redir, &node->command.redirs) {
       if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *expanded = expand(redir->path);
+      char *expanded = expand_variable(redir->path);
       if (expanded) {
         free(redir->path);
         redir->path = expanded;

@@ -4,12 +4,12 @@
 
 #include <ctype.h>
 
-void splitting(AstNode *root) {
-  if (!root) {
+void word_splitting(AstNode *node) {
+  if (!node) {
     return;
   }
 
-  switch (root->type) {
+  switch (node->type) {
   case NODE_PIPE:
   case NODE_AND:
   case NODE_OR:
@@ -20,14 +20,14 @@ void splitting(AstNode *root) {
     return;
 
   case NODE_COMMAND:
-    if (root->command.args.size == 0) {
+    if (node->command.args.size == 0) {
       return;
     }
 
     Arguments args = {0};
 
-    for (size_t j = 0; j < root->command.args.size; j++) {
-      char *arg = root->command.args.data[j];
+    for (size_t j = 0; j < node->command.args.size; j++) {
+      char *arg = node->command.args.data[j];
       if (!arg) {
         continue;
       }
@@ -68,7 +68,7 @@ void splitting(AstNode *root) {
       free(arg);
     }
 
-    vec_free(&root->command.args);
-    root->command.args = args;
+    vec_free(&node->command.args);
+    node->command.args = args;
   }
 }

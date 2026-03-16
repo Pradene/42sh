@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-static char *strip_quotes(const char *s) {
+static char *remove_quotes(const char *s) {
   if (!s || s[0] == '\0') {
     return strdup(s);
   }
@@ -47,12 +47,12 @@ static char *strip_quotes(const char *s) {
   return result;
 }
 
-void stripping(AstNode *root) {
-  if (!root) {
+void quotes_removal(AstNode *node) {
+  if (!node) {
     return;
   }
 
-  switch (root->type) {
+  switch (node->type) {
   case NODE_PIPE:
   case NODE_AND:
   case NODE_OR:
@@ -62,11 +62,11 @@ void stripping(AstNode *root) {
 
   case NODE_BRACE:
   case NODE_PAREN:
-    vec_foreach(Redir, redir, &root->group.redirs) {
+    vec_foreach(Redir, redir, &node->group.redirs) {
       if (redir->type == REDIRECT_HEREDOC) {
         continue;
       }
-      char *stripped = strip_quotes(redir->path);
+      char *stripped = remove_quotes(redir->path);
       if (stripped) {
         free(redir->path);
         redir->path = stripped;
@@ -76,19 +76,19 @@ void stripping(AstNode *root) {
     return;
 
   case NODE_COMMAND:
-    vec_foreach(char *, arg, &root->command.args) {
-      char *stripped = strip_quotes(*arg);
+    vec_foreach(char *, arg, &node->command.args) {
+      char *stripped = remove_quotes(*arg);
       if (stripped) {
         free(*arg);
         *arg = stripped;
       }
     }
 
-    vec_foreach(Redir, redir, &root->command.redirs) {
+    vec_foreach(Redir, redir, &node->command.redirs) {
       if (redir->type == REDIRECT_HEREDOC || redir->type == REDIRECT_OUT_FD || redir->type == REDIRECT_IN_FD) {
         continue;
       }
-      char *stripped = strip_quotes(redir->path);
+      char *stripped = remove_quotes(redir->path);
       if (stripped) {
         free(redir->path);
         redir->path = stripped;

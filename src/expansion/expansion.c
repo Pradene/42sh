@@ -22,15 +22,17 @@ void expand_command(AstNode *node) {
   case NODE_PAREN:
     expand_command(node->group.inner);
 
-    expansion(node);
-    splitting(node);
-    stripping(node);
+    command_substitution(node);
+    variable_expansion(node);
+    word_splitting(node);
+    quotes_removal(node);
     return;
 
   case NODE_COMMAND:
-    expansion(node);
-    splitting(node);
-    stripping(node);
+    command_substitution(node);
+    variable_expansion(node);
+    word_splitting(node);
+    quotes_removal(node);
     return;
   }
 }

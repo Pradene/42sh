@@ -80,6 +80,6 @@ typedef struct AstNode {
   AstNodeType type;
 } AstNode;
 
-void ast_print(AstNode *root);
-void ast_free(AstNode *root);
-bool has_heredocs(AstNode *root);
+void ast_print(AstNode *node);
+void ast_free(AstNode *node);
+bool has_heredocs(AstNode *node);

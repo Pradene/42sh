@@ -122,7 +122,7 @@ Token next_token(const char *s, size_t *i) {
           int32_t depth = 1;
           sb_append_char(&sb, s[*i]);
           ++(*i);
-          while (depth) {
+          while (s[*i] && depth) {
             if (s[*i] == '(') {
               ++depth;
             } else if (s[*i] == ')') {
@@ -131,6 +131,10 @@ Token next_token(const char *s, size_t *i) {
             
             sb_append_char(&sb, s[*i]);
             ++(*i);
+          }
+          if (depth != 0) {
+            sb_free(&sb);
+            return (Token){TOKEN_ERROR, *i, NULL};
           }
         } else {
           while (s[*i] && !is_delimiter(s[*i])) {
