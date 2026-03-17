@@ -19,6 +19,7 @@ typedef struct {
 } HashTable;
 
 HashTable *ht_with_capacity(const size_t capacity);
+size_t     ht_size(HashTable *ht);
 void       ht_insert(HashTable *ht, const char *key, void *value);
 bool       ht_contains(const HashTable* table, const char *key);
 HtEntry   *ht_get(const HashTable *ht, const char *key);

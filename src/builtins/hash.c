@@ -28,13 +28,18 @@ void hash_clear(HashTable *ht) {
 }
 
 void hash_print(HashTable *ht) {
-  printf("hits\tcommand\n");
-  for (size_t i = 0; i < ht->capacity; ++i) {
-    HtEntry *entry = ht->buckets[i];
-    while (entry) {
-      CacheEntry *e = (CacheEntry *)entry->value;
-      printf("%4zu\t%s\n", e->hits, e->path);
-      entry = entry->next;
+  if (ht_size(ht) == 0) {
+    printf("hash: hash table empty\n");
+
+  } else {
+    printf("hits\tcommand\n");
+    for (size_t i = 0; i < ht->capacity; ++i) {
+      HtEntry *entry = ht->buckets[i];
+      while (entry) {
+        CacheEntry *e = (CacheEntry *)entry->value;
+        printf("%4zu\t%s\n", e->hits, e->path);
+        entry = entry->next;
+      }
     }
   }
 }

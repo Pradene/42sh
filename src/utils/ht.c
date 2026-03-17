@@ -13,6 +13,21 @@ uint32_t djb2(const unsigned char *str) {
   return hash;
 }
 
+size_t ht_size(HashTable *ht) {
+  size_t size = 0;
+
+  for (size_t i = 0; i < ht->capacity; ++i) {
+    HtEntry *entry = ht->buckets[i];
+
+    while (entry) {
+      ++size;
+      entry = entry->next;
+    }
+  }
+
+  return size;
+}
+
 static bool ht_resize(HashTable *ht, const size_t new_capacity) {
   HtEntry **new_buckets = calloc(new_capacity, sizeof(HtEntry *));
   if (!new_buckets) {
