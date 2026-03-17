@@ -25,11 +25,13 @@ StatusCode environ_from_envp(HashTable *env, const char **envp) {
         continue;
       }
 
-      Variable *value = (Variable *)malloc(sizeof(Variable));
-      value->content = content;
-      value->exported = true;
-      value->readonly = false;
-      ht_insert(env, envp[i], value);
+      Variable value = (Variable){
+        .content  = content,
+        .exported = true,
+        .readonly = false,
+      };
+
+      ht_insert(env, envp[i], &value, sizeof(Variable));
     }
   }
 

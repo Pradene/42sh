@@ -40,11 +40,12 @@ void builtin_export(AstNode *node) {
         continue;
       }
 
-      Variable *value = (Variable *)malloc(sizeof(Variable));
-      value->content = content;
-      value->exported = true;
-      value->readonly = false;
-      ht_insert(environ, key, value);
+      Variable value = (Variable){
+        .content = content,
+        .exported = true,
+        .readonly = false,
+      };
+      ht_insert(environ, key, &value, sizeof(Variable));
     }
   }
 }

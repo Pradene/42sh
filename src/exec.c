@@ -72,11 +72,12 @@ void apply_assignments(Assignments *assignments) {
   }
 
   vec_foreach(Assignment, assignment, assignments) {
-    Variable *value = (Variable *)malloc(sizeof(Variable));
-    value->content = strdup(assignment->value);
-    value->exported = false;
-    value->readonly = false;
-    ht_insert(environ, assignment->name, value);
+    Variable value = (Variable){
+      .content = strdup(assignment->value),
+      .exported = false,
+      .readonly = false,
+    };
+    ht_insert(environ, assignment->name, &value, sizeof(Variable));
   }
 }
 

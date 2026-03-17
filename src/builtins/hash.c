@@ -6,10 +6,11 @@
 #include <stdio.h>
 
 void hash_insert(HashTable *ht, const char *key, const char *path) {
-  CacheEntry *e = malloc(sizeof(CacheEntry));
-  e->path = strdup(path);
-  e->hits = 0;
-  ht_insert(ht, key, e);
+  CacheEntry entry = (CacheEntry){
+    .path = strdup(path),
+    .hits = 0,
+  };
+  ht_insert(ht, key, &entry, sizeof(CacheEntry));
 }
 
 CacheEntry *hash_get(HashTable *ht, const char *key) {

@@ -49,15 +49,17 @@ void builtin_cd(AstNode *node) {
     return;
   }
 
-  Variable *old = (Variable *)malloc(sizeof(Variable));
-  old->content = old_path;
-  old->exported = true;
-  old->readonly = false;
-  ht_insert(environ, strdup("OLDPWD"), old);
+  Variable old = (Variable){
+    .content = old_path,
+    .exported = true,
+    .readonly = false,
+  };
+  ht_insert(environ, "OLDPWD", &old, sizeof(Variable));
   
-  Variable *new = (Variable *)malloc(sizeof(Variable));
-  new->content = new_path;
-  new->exported = true;
-  new->readonly = false;
-  ht_insert(environ, strdup("PWD"), new);
+  Variable new = (Variable){
+    .content = new_path,
+    .exported = true,
+    .readonly = false,
+  };
+  ht_insert(environ, "PWD", &new, sizeof(Variable));
 }
