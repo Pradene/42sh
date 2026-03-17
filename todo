@@ -1,4 +1,4 @@
-- built-ins (jobs, fg, bg, set, hash)
+- built-ins (jobs, fg, bg)
 - Parsing $(())
 - handling >& and <& correctly
-- signals
+- signals inside heredoc

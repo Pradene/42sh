@@ -12,10 +12,10 @@ typedef struct HtEntry {
 
 typedef struct {
   HtEntry **buckets;
-  size_t      size;
-  size_t      capacity;
+  size_t    size;
+  size_t    capacity;
   
-  void        (*free)(void *);
+  void      (*free)(void *);
 } HashTable;
 
 HashTable *ht_with_capacity(const size_t capacity);
