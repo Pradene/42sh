@@ -15,13 +15,16 @@ typedef struct {
   HtEntry **buckets;
   size_t    size;
   size_t    capacity;
-  void    (*free)(void *);
+  size_t    value_size;
+  void      (*free)(void *);
 } HashTable;
 
 static inline uint32_t djb2(const unsigned char *str) {
   uint32_t hash = 5381;
-  while (*str)
+  while (*str) {
     hash = ((hash << 5) + hash) + *str++;
+  }
+
   return hash;
 }
 
@@ -47,15 +50,19 @@ static inline bool ht_resize(HashTable *ht, size_t new_capacity) {
   return true;
 }
 
-static inline HashTable *ht_with_capacity(size_t capacity) {
+static inline HashTable *ht_new(size_t value_size) {
   HashTable *ht = malloc(sizeof(HashTable));
-  if (!ht)
+  if (!ht) {
     return NULL;
-  ht->buckets  = NULL;
-  ht->size     = 0;
-  ht->capacity = 0;
-  ht->free     = NULL;
-  if (!ht_resize(ht, capacity)) {
+  }
+
+  ht->buckets    = NULL;
+  ht->size       = 0;
+  ht->capacity   = 0;
+  ht->value_size = value_size;
+  ht->free       = free;
+
+  if (!ht_resize(ht, 32)) {
     free(ht);
     return NULL;
   }
@@ -66,7 +73,7 @@ static inline size_t ht_size(HashTable *ht) {
   return ht->size;
 }
 
-static inline bool ht_insert(HashTable *ht, const char *k, const void *v, size_t value_size) {
+static inline bool ht_insert(HashTable *ht, const char *k, const void *v) {
   if (!k || !v) {
     return false;
   }
@@ -84,7 +91,7 @@ static inline bool ht_insert(HashTable *ht, const char *k, const void *v, size_t
 
   while (entry) {
     if (strcmp(entry->key, k) == 0) {
-      void *new_value = malloc(value_size);
+      void *new_value = malloc(ht->value_size);
       if (!new_value) {
         return false;
       }
@@ -94,7 +101,7 @@ static inline bool ht_insert(HashTable *ht, const char *k, const void *v, size_t
         free(entry->value);
       }
       entry->value = new_value;
-      memcpy(entry->value, v, value_size);
+      memcpy(entry->value, v, ht->value_size);
       return true;
     }
     entry = entry->next;
@@ -109,13 +116,13 @@ static inline bool ht_insert(HashTable *ht, const char *k, const void *v, size_t
     free(entry);
     return false;
   }
-  entry->value = malloc(value_size);
+  entry->value = malloc(ht->value_size);
   if (!entry->value) {
     free(entry->key);
     free(entry);
     return false;
   }
-  memcpy(entry->value, v, value_size);
+  memcpy(entry->value, v, ht->value_size);
   entry->next = ht->buckets[hash];
   ht->buckets[hash] = entry;
   ht->size++;

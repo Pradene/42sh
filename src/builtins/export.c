@@ -45,7 +45,9 @@ void builtin_export(AstNode *node) {
         .exported = true,
         .readonly = false,
       };
-      ht_insert(environ, key, &value, sizeof(Variable));
+
+      ht_insert(environ, key, &value);
+      free(key);
     }
   }
 }

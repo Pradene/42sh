@@ -17,17 +17,33 @@ void builtin_cd(AstNode *node) {
   }
 
   char *old_path = malloc(sizeof(char) * MAX_PATH);
+  if (!old_path) {
+    return;
+  }
+
   char *new_path = malloc(sizeof(char) * MAX_PATH);
+  if (!new_path) {
+    free(old_path);
+    return;
+  }
 
   char *path = NULL;
   if (argc == 1) {
     char *variable = env_find(environ, "HOME");
-    path = variable;
+    if (!variable) {
+      printf("%s: cd: HOME not set\n", program_name);
+    } else {
+      path = variable;
+    }
   } else {
     path = node->command.args.data[1];
     if (!strcmp("-", path)) {
       char *variable = env_find(environ, "OLDPWD");
-      path = variable;
+      if (!variable) {
+        printf("%s: cd: OLDPWD not set\n", program_name);
+      } else {
+        path = variable;
+      }
     }
   }
 
@@ -54,12 +70,12 @@ void builtin_cd(AstNode *node) {
     .exported = true,
     .readonly = false,
   };
-  ht_insert(environ, "OLDPWD", &old, sizeof(Variable));
+  ht_insert(environ, "OLDPWD", &old);
   
   Variable new = (Variable){
     .content = new_path,
     .exported = true,
     .readonly = false,
   };
-  ht_insert(environ, "PWD", &new, sizeof(Variable));
+  ht_insert(environ, "PWD", &new);
 }

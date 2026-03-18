@@ -79,7 +79,7 @@ void exec_builtin(AstNode *node) {
     for (size_t i = 0; i < vec_size(assigns); ++i) {
       const char *name = assigns->data[i].name;
       if (old_values[i]) {
-        ht_insert(environ, name, old_values[i], sizeof(char *));
+        ht_insert(environ, name, old_values[i]);
       } else {
         ht_remove(environ, name);
       }

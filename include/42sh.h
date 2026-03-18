@@ -7,6 +7,8 @@
 #include "sb.h"
 #include "ht.h"
 
+extern char       *program_name;
+
 extern HashTable  *environ; // value -> Variable *
 extern HashTable  *aliases; // value -> char *
 extern HashTable  *hash;    // value -> CacheEntry *

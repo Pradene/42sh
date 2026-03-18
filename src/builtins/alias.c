@@ -37,7 +37,7 @@ void builtin_alias(AstNode *node) {
 
       char *name = args[i];
       char *value = equal + 1;
-      ht_insert(aliases, name, value, sizeof(char *));
+      ht_insert(aliases, name, value);
 
       *equal = '=';
     }

@@ -31,7 +31,7 @@ StatusCode environ_from_envp(HashTable *env, const char **envp) {
         .readonly = false,
       };
 
-      ht_insert(env, envp[i], &value, sizeof(Variable));
+      ht_insert(env, envp[i], &value);
     }
   }
 

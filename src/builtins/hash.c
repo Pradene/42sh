@@ -10,7 +10,7 @@ void hash_insert(HashTable *ht, const char *key, const char *path) {
     .path = strdup(path),
     .hits = 0,
   };
-  ht_insert(ht, key, &entry, sizeof(CacheEntry));
+  ht_insert(ht, key, &entry);
 }
 
 CacheEntry *hash_get(HashTable *ht, const char *key) {

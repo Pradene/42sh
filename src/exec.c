@@ -77,7 +77,7 @@ void apply_assignments(Assignments *assignments) {
       .exported = false,
       .readonly = false,
     };
-    ht_insert(environ, assignment->name, &value, sizeof(Variable));
+    ht_insert(environ, assignment->name, &value);
   }
 }
 

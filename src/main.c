@@ -16,6 +16,8 @@
 #include <termios.h>
 #include <unistd.h>
 
+char *program_name = NULL;
+
 HashTable *environ = NULL;
 HashTable *aliases = NULL;
 HashTable *hash = NULL;
@@ -117,19 +119,20 @@ static void run(char *(*getline)()) {
 }
 
 int main(int argc, char **argv, char **envp) {
-  environ = ht_with_capacity(32);
-  environ->free = env_variable_free;
-
-  hash = ht_with_capacity(32);
-  hash->free = hash_entry_free;
-
-  aliases = ht_with_capacity(32);
-  aliases->free = free;
-
-  environ_from_envp(environ, (const char **)envp);
+  program_name = *argv;
 
   --argc;
   ++argv;
+
+  aliases = ht_new(sizeof(char *));
+  environ = ht_new(sizeof(Variable));
+  hash    = ht_new(sizeof(CacheEntry));
+  
+  environ->free = env_variable_free;
+  hash->free    = hash_entry_free;
+
+
+  environ_from_envp(environ, (const char **)envp);
 
   while (argc > 0 && (*argv)[0] == '-') {
     if (strcmp(*argv, "--") == 0) {
