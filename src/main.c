@@ -131,7 +131,6 @@ int main(int argc, char **argv, char **envp) {
   environ->free = env_variable_free;
   hash->free    = hash_entry_free;
 
-
   environ_from_envp(environ, (const char **)envp);
 
   while (argc > 0 && (*argv)[0] == '-') {
@@ -145,7 +144,7 @@ int main(int argc, char **argv, char **envp) {
       --argc;
       ++argv;
       if (argc == 0) {
-        fprintf(stderr, "42sh: -c: option requires an argument\n");
+        fprintf(stderr, "%s: -c: option requires an argument\n", program_name);
         cleanup();
         return 2;
       }
@@ -155,7 +154,7 @@ int main(int argc, char **argv, char **envp) {
       return exit_status;
     }
 
-    fprintf(stderr, "42sh: %s: invalid option\n", *argv);
+    fprintf(stderr, "%s: %s: invalid option\n", program_name, *argv);
     cleanup();
     return 2;
   }
@@ -163,7 +162,7 @@ int main(int argc, char **argv, char **envp) {
   if (argc > 0) {
     int fd = open(*argv, O_RDONLY);
     if (fd < 0) {
-      fprintf(stderr, "42sh: %s: cannot open file\n", *argv);
+      fprintf(stderr, "%s: %s: cannot open file\n", program_name, *argv);
       cleanup();
       return 2;
     }

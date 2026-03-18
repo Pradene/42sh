@@ -31,7 +31,7 @@ void builtin_cd(AstNode *node) {
   if (argc == 1) {
     char *variable = env_find(environ, "HOME");
     if (!variable) {
-      printf("%s: cd: HOME not set\n", program_name);
+      fprintf(stderr, "%s: cd: HOME not set\n", program_name);
     } else {
       path = variable;
     }
@@ -40,7 +40,7 @@ void builtin_cd(AstNode *node) {
     if (!strcmp("-", path)) {
       char *variable = env_find(environ, "OLDPWD");
       if (!variable) {
-        printf("%s: cd: OLDPWD not set\n", program_name);
+        fprintf(stderr, "%s: cd: OLDPWD not set\n", program_name);
       } else {
         path = variable;
       }

@@ -132,6 +132,7 @@ Token next_token(const char *s, size_t *i) {
             sb_append_char(&sb, s[*i]);
             ++(*i);
           }
+
           if (depth != 0) {
             sb_free(&sb);
             return (Token){TOKEN_ERROR, *i, NULL};

@@ -13,7 +13,7 @@ static char *interpret_escapes(const char *str) {
   
   for (size_t i = 0; str[i]; i++) {
     if (str[i] == '\\' && str[i + 1]) {
-      i++;
+      ++i;
       switch (str[i]) {
         case 'n':
           result[j++] = '\n';
@@ -61,13 +61,13 @@ void builtin_echo(AstNode *node) {
 
   while (argc > index) {
     if (strcmp(args[index], "-n") == 0) {
-        newline = false;
+      newline = false;
     } else if (strcmp(args[index], "-e") == 0) {
-        interpret = true;
+      interpret = true;
     } else if (strcmp(args[index], "-E") == 0) {
-        interpret = false;
+      interpret = false;
     } else {
-        break;
+      break;
     }
     index++;
   }
@@ -80,7 +80,7 @@ void builtin_echo(AstNode *node) {
     } else {
       output = strdup(args[i]);
     }
-    
+
     write(STDOUT_FILENO, output, strlen(output));
     if (i < argc - 1) {
       write(STDOUT_FILENO, " ", 1);

@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-static char *run_substitution(const char *cmd) {
+static char *run_substitution(char *cmd) {
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     return NULL;
@@ -27,6 +27,7 @@ static char *run_substitution(const char *cmd) {
     char *expanded = expand_alias(cmd);
     StatusCode status = parse(expanded, &node);
     free(expanded);
+    free(cmd);
 
     if (status == OK) {
       expand_command(node);
