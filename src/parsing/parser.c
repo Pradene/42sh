@@ -27,11 +27,13 @@ static void parser_discard(ParserState *state) {
 static StatusCode parser_peek(ParserState *state, Token *token) {
   if (!state->token_ready) {
     state->current_token = next_token(state->input, &state->position);
-    if (state->current_token.type == TOKEN_ERROR) {
-      return INCOMPLETE_INPUT;
-    }
     state->token_ready = true;
   }
+
+  if (state->current_token.type == TOKEN_ERROR) {
+    return INCOMPLETE_INPUT;
+  }
+  
   *token = state->current_token;
   return OK;
 }
@@ -228,22 +230,23 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
   node->type = NODE_COMMAND;
   node->command = (Command){0};
 
+  StatusCode last_status = INCOMPLETE_INPUT;
   bool is_assignment_ended = false;
 
   while (true) {
-    Token token;
-    StatusCode status = parser_peek(state, &token);
-    if (status != OK) {
+    Token token = {0};
+    last_status = parser_peek(state, &token);
+    if (last_status != OK) {
       ast_free(node);
-      return status;
+      return last_status;
     }
 
     if (parser_match(state, TOKEN_WORD)) {
       Token token;
-      StatusCode status = parser_peek(state, &token);
-      if (status != OK) {
+      last_status = parser_peek(state, &token);
+      if (last_status != OK) {
         ast_free(node);
-        return status;
+        return last_status;
       }
 
       if (!is_assignment_ended && is_assignment(token.s)) {
@@ -260,10 +263,10 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
       }
     } else if (is_redirect_token(state)) {
       Redir redir = {0};
-      StatusCode status = parse_redir(state, &redir);
-      if (status != OK) {
+      last_status = parse_redir(state, &redir);
+      if (last_status != OK) {
         ast_free(node);
-        return status;
+        return last_status;
       }
       vec_push(&node->command.redirs, redir);
       if (redir.type == REDIRECT_HEREDOC) {
@@ -278,8 +281,8 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
     *root = node;
     return OK;
   } else {
-    free(node);
-    return UNEXPECTED_TOKEN;
+    ast_free(node);
+    return last_status != OK ? INCOMPLETE_INPUT : UNEXPECTED_TOKEN;
   }
 }
 
@@ -497,28 +500,31 @@ StatusCode parse(const char *input, AstNode **root) {
     .position = 0,
     .current_token = {0},
     .token_ready = false,
-    .heredocs = {0}
+    .heredocs = {0},
   };
 
-  StatusCode status = parse_sequence(&state, root);
-  if (status != OK) {
+  StatusCode last_status = OK;
+
+  last_status = parse_sequence(&state, root);
+  if (last_status != OK) {
     vec_foreach(Redir *, heredoc, &state.heredocs) {
       free((*heredoc)->delimiter);
     }
     vec_free(&state.heredocs);
-    return status;
+    printf("Parse: %d\n", last_status);
+    return last_status;
   }
 
   if (parser_match(&state, TOKEN_NEWLINE)) {
     parser_advance(&state);
-    StatusCode ds = read_heredocs(&state);
-    if (ds != OK) {
+    last_status = read_heredocs(&state);
+    if (last_status != OK) {
       vec_foreach(Redir *, heredoc, &state.heredocs) {
         free((*heredoc)->delimiter);
       }
       vec_free(&state.heredocs);
       ast_free(*root);
-      return ds;
+      return last_status;
     }
     return OK;
   }

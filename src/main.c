@@ -124,10 +124,16 @@ int main(int argc, char **argv, char **envp) {
   --argc;
   ++argv;
 
-  aliases = ht_new(sizeof(char *));
-  environ = ht_new(sizeof(Variable));
-  hash    = ht_new(sizeof(CacheEntry));
-  
+  if (
+    !(aliases = ht_new(sizeof(char *)))   ||
+    !(environ = ht_new(sizeof(Variable))) ||
+    !(hash    = ht_new(sizeof(CacheEntry)))
+  ) {
+    ht_destroy(aliases);
+    ht_destroy(environ);
+    return 1;
+  }
+
   environ->free = env_variable_free;
   hash->free    = hash_entry_free;
 
