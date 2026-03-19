@@ -44,8 +44,6 @@ static StatusCode parser_advance(ParserState *state) {
     if (state->current_token.type == TOKEN_ERROR) {
       return INCOMPLETE_INPUT;
     }
-    state->token_ready = true;
-    return OK;
   }
 
   state->token_ready = false;
@@ -511,7 +509,6 @@ StatusCode parse(const char *input, AstNode **root) {
       free((*heredoc)->delimiter);
     }
     vec_free(&state.heredocs);
-    printf("Parse: %d\n", last_status);
     return last_status;
   }
 
