@@ -291,6 +291,10 @@ static StatusCode parse_group(ParserState *state, AstNode **root) {
 
   parser_advance(state);
 
+  while (parser_match(state, TOKEN_NEWLINE)) {
+    parser_advance(state);
+  }
+
   if (parser_match(state, TOKEN_EOF)) {
     return INCOMPLETE_INPUT;
   }
@@ -299,6 +303,10 @@ static StatusCode parse_group(ParserState *state, AstNode **root) {
   StatusCode status = parse_sequence(state, &inner);
   if (status != OK) {
     return status;
+  }
+
+  while (parser_match(state, TOKEN_NEWLINE)) {
+    parser_advance(state);
   }
 
   if (!parser_match(state, close)) {
@@ -417,7 +425,7 @@ static StatusCode parse_sequence(ParserState *state, AstNode **root) {
     return status;
   }
 
-  while (parser_match(state, TOKEN_OPERAND) || parser_match(state, TOKEN_SEMICOLON) || parser_match(state, TOKEN_NEWLINE)) {
+  while (parser_match(state, TOKEN_OPERAND) || parser_match(state, TOKEN_SEMICOLON)) {
     Token sep_token;
     StatusCode status = parser_peek(state, &sep_token);
     if (status != OK) {
