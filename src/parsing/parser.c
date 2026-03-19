@@ -16,6 +16,14 @@ static StatusCode parse_pipeline(ParserState *state, AstNode **root);
 static StatusCode parse_logical(ParserState *state, AstNode **root);
 static StatusCode parse_sequence(ParserState *state, AstNode **root);
 
+static void parser_discard(ParserState *state) {
+  if (state->token_ready && state->current_token.type == TOKEN_WORD) {
+    free(state->current_token.s);
+    state->current_token.s = NULL;
+  }
+  state->token_ready = false;
+}
+
 static StatusCode parser_peek(ParserState *state, Token *token) {
   if (!state->token_ready) {
     state->current_token = next_token(state->input, &state->position);
@@ -313,7 +321,6 @@ static StatusCode parse_group(ParserState *state, AstNode **root) {
     ast_free(inner);
     return parser_match(state, TOKEN_EOF) ? INCOMPLETE_INPUT : UNEXPECTED_TOKEN;
   }
-  parser_advance(state);
 
   AstNode *node = (AstNode *)malloc(sizeof(AstNode));
   if (!node) {
@@ -323,6 +330,14 @@ static StatusCode parse_group(ParserState *state, AstNode **root) {
   node->type = type;
   node->group.inner = inner;
   node->group.redirs = (Redirs){0};
+
+  parser_advance(state);
+
+  if (parser_match(state, TOKEN_WORD)) {
+    parser_discard(state);
+    ast_free(node);
+    return UNEXPECTED_TOKEN;
+  }
 
   while (is_redirect_token(state)) {
     Redir redir = {0};
