@@ -20,8 +20,7 @@ StatusCode environ_from_envp(HashTable *env, const char **envp) {
     } else {
       *equal = '\0';
       char *content = strdup(equal + 1);
-      if (strcmp(content, "") == 0) {
-        free(content);
+      if (!content) {
         continue;
       }
 

@@ -138,6 +138,8 @@ int main(int argc, char **argv, char **envp) {
 
   environ_from_envp(environ, (const char **)envp);
 
+  signal(SIGQUIT, SIG_IGN);
+
   while (argc > 0 && (*argv)[0] == '-') {
     if (strcmp(*argv, "--") == 0) {
       --argc;
@@ -194,7 +196,7 @@ int main(int argc, char **argv, char **envp) {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = SIG_IGN;
-    sigaction(SIGQUIT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
 
     run(getline_from_fd);

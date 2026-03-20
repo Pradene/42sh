@@ -202,9 +202,20 @@ void execute_simple_command(AstNode *node) {
 
     exit(EXIT_FAILURE);
   } else {
-    int status = 0;
     setpgid(pid, pid);
+    
+    if (is_interactive) {
+      signal(SIGTTOU, SIG_IGN);
+      tcsetpgrp(STDIN_FILENO, pid);
+    }
+
+    int status = 0;
     waitpid(pid, &status, 0);
+    
+    if (is_interactive) {
+      tcsetpgrp(STDIN_FILENO, getpgrp());
+      signal(SIGTTOU, SIG_DFL);
+    }
 
     CacheEntry *entry = hash_get(hash, node->command.args.data[0]);
     if (entry) {
@@ -246,11 +257,9 @@ void execute_pipe(AstNode *node) {
     close(pipefd[1]);
 
     execute_command(node->operator.left);
-    int status = exit_status;
 
     cleanup();
-
-    exit(status);
+    exit(exit_status);
   }
 
   pid_t pid_right = fork();
@@ -270,11 +279,9 @@ void execute_pipe(AstNode *node) {
     close(pipefd[0]);
 
     execute_command(node->operator.right);
-    int status = exit_status;
 
     cleanup();
-
-    exit(status);
+    exit(exit_status);
   }
 
   close(pipefd[0]);
@@ -282,10 +289,20 @@ void execute_pipe(AstNode *node) {
 
   setpgid(pid_left, pid_left);
   setpgid(pid_right, pid_left);
-  
+
+  if (is_interactive) {
+    signal(SIGTTOU, SIG_IGN);
+    tcsetpgrp(STDIN_FILENO, pid_left);
+  }
+
   int status;
   waitpid(pid_left, NULL, 0);
   waitpid(pid_right, &status, 0);
+
+  if (is_interactive) {
+    tcsetpgrp(STDIN_FILENO, getpgrp());
+    signal(SIGTTOU, SIG_DFL);
+  }
 
   if (WIFEXITED(status)) {
     exit_status = WEXITSTATUS(status);
