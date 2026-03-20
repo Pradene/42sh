@@ -81,9 +81,9 @@ void apply_assignments(Assignments *assignments) {
   }
 }
 
-void apply_redirs(Redirs *redirs) {
+bool apply_redirs(Redirs *redirs) {
   if (!redirs || !vec_size(redirs)) {
-    return;
+    return true;
   }
 
   vec_foreach(Redir, redir, redirs) {
@@ -94,7 +94,7 @@ void apply_redirs(Redirs *redirs) {
       fd = open(redir->path, O_RDONLY);
       if (fd == -1) {
         perror(redir->path);
-        exit(EXIT_FAILURE);
+        return false;
       }
       dup2(fd, STDIN_FILENO);
       close(fd);
@@ -107,7 +107,7 @@ void apply_redirs(Redirs *redirs) {
       fd = open(redir->path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
       if (fd == -1) {
         perror(redir->path);
-        exit(EXIT_FAILURE);
+        return false;
       }
       dup2(fd, STDOUT_FILENO);
       close(fd);
@@ -116,7 +116,7 @@ void apply_redirs(Redirs *redirs) {
       fd = open(redir->path, O_WRONLY | O_CREAT | O_APPEND, 0644);
       if (fd == -1) {
         perror(redir->path);
-        exit(EXIT_FAILURE);
+        return false;
       }
       dup2(fd, STDOUT_FILENO);
       close(fd);
@@ -124,17 +124,21 @@ void apply_redirs(Redirs *redirs) {
     case REDIRECT_OUT_FD:
       if (dup2(redir->fd, STDOUT_FILENO) == -1) {
         perror("dup2");
-        exit(EXIT_FAILURE);
+        return false;
       }
       break;
     case REDIRECT_IN_FD:
       if (dup2(redir->fd, STDIN_FILENO) == -1) {
         perror("dup2");
-        exit(EXIT_FAILURE);
+        return false;
       }
       break;
+    default:
+      return false;
     }
   }
+
+  return true;
 }
 
 void execute_simple_command(AstNode *node) {
@@ -171,15 +175,13 @@ void execute_simple_command(AstNode *node) {
   } else if (pid == 0) {
     char **args = node->command.args.data;
 
-    apply_redirs(&node->command.redirs);
-    apply_assignments(&node->command.assigns);
+    setpgid(0, 0);
+    signals_reset();
 
-    struct sigaction sa;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sa.sa_handler = SIG_DFL;
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGQUIT, &sa, NULL);
+    apply_assignments(&node->command.assigns);
+    if (!apply_redirs(&node->command.redirs)) {
+      exit(EXIT_FAILURE);
+    }
 
     vec_push(&node->command.args, NULL);
 
@@ -201,6 +203,7 @@ void execute_simple_command(AstNode *node) {
     exit(EXIT_FAILURE);
   } else {
     int status = 0;
+    setpgid(pid, pid);
     waitpid(pid, &status, 0);
 
     CacheEntry *entry = hash_get(hash, node->command.args.data[0]);
@@ -234,6 +237,10 @@ void execute_pipe(AstNode *node) {
     close(pipefd[1]);
     return;
   } else if (pid_left == 0) {
+    setpgid(0, 0);
+
+    signals_reset();
+
     close(pipefd[0]);
     dup2(pipefd[1], STDOUT_FILENO);
     close(pipefd[1]);
@@ -254,6 +261,10 @@ void execute_pipe(AstNode *node) {
     waitpid(pid_left, NULL, 0);
     return;
   } else if (pid_right == 0) {
+    setpgid(0, pid_left);
+
+    signals_reset();
+
     close(pipefd[1]);
     dup2(pipefd[0], STDIN_FILENO);
     close(pipefd[0]);
@@ -269,9 +280,13 @@ void execute_pipe(AstNode *node) {
   close(pipefd[0]);
   close(pipefd[1]);
 
+  setpgid(pid_left, pid_left);
+  setpgid(pid_right, pid_left);
+  
   int status;
   waitpid(pid_left, NULL, 0);
   waitpid(pid_right, &status, 0);
+
   if (WIFEXITED(status)) {
     exit_status = WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
@@ -285,14 +300,12 @@ void execute_subshell(AstNode *node) {
   if (pid < 0) {
     return;
   } else if (pid == 0) {
-    struct sigaction sa;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sa.sa_handler = SIG_DFL;
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGQUIT, &sa, NULL);
+    setpgid(0, 0);
+    signals_reset();
 
-    apply_redirs(&node->group.redirs);
+    if (!apply_redirs(&node->group.redirs)) {
+      exit(EXIT_FAILURE);
+    }
 
     execute_command(node->group.inner);
 
@@ -338,6 +351,18 @@ void execute_command(AstNode *node) {
     return;
   }
   case NODE_BACKGROUND:
+    pid_t pid = fork();
+    if (pid == 0) {
+      setpgid(0, 0);
+      signals_reset();
+      execute_command(node->operator.left);
+      cleanup();
+      exit(exit_status);
+    }
+    setpgid(pid, pid);
+    fprintf(stderr, "[1] %d\n", pid);
+    execute_command(node->operator.right);
+    return;
   case NODE_SEMICOLON:
     execute_command(node->operator.left);
     execute_command(node->operator.right);

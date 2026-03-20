@@ -2,6 +2,7 @@
 #include "vec.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 static char *remove_quotes(const char *s) {
   if (!s || s[0] == '\0') {
@@ -15,8 +16,8 @@ static char *remove_quotes(const char *s) {
   }
 
   size_t i = 0;
-  int in_single_quote = 0;
-  int in_double_quote = 0;
+  bool in_single_quote = false;
+  bool in_double_quote = false;
 
   for (size_t j = 0; j < length; ++j) {
     char c = s[j];

@@ -505,10 +505,13 @@ StatusCode parse(const char *input, AstNode **root) {
 
   last_status = parse_sequence(&state, root);
   if (last_status != OK) {
+    parser_discard(&state);
+
     vec_foreach(Redir *, heredoc, &state.heredocs) {
       free((*heredoc)->delimiter);
     }
     vec_free(&state.heredocs);
+
     return last_status;
   }
 
@@ -516,10 +519,13 @@ StatusCode parse(const char *input, AstNode **root) {
     parser_advance(&state);
     last_status = read_heredocs(&state);
     if (last_status != OK) {
+      parser_discard(&state);
+
       vec_foreach(Redir *, heredoc, &state.heredocs) {
         free((*heredoc)->delimiter);
       }
       vec_free(&state.heredocs);
+
       ast_free(*root);
       return last_status;
     }
@@ -527,10 +533,13 @@ StatusCode parse(const char *input, AstNode **root) {
   }
 
   if (!parser_match(&state, TOKEN_EOF)) {
+    parser_discard(&state);
+
     vec_foreach(Redir *, heredoc, &state.heredocs) {
       free((*heredoc)->delimiter);
     }
     vec_free(&state.heredocs);
+
     ast_free(*root);
     return UNEXPECTED_TOKEN;
   }

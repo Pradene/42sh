@@ -110,7 +110,6 @@ static void run(char *(*getline)()) {
     }
 
     last_command = command;
-
     expand_command(command);
     execute_command(command);
 

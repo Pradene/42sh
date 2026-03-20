@@ -51,6 +51,7 @@ static char *run_substitution(char *cmd) {
     close(pipefd[0]);
     
     int status;
+    setpgid(pid, pid);
     waitpid(pid, &status, 0);
     
     char *result = sb_as_cstr(&sb);
@@ -85,9 +86,15 @@ static char *expand_substitution(const char *s) {
 
         ++i;
       }
+
       char *cmd = strndup(s + start, i - start - 1);
-      char *output = run_substitution(cmd);
+
+      char *expanded_cmd = expand_substitution(cmd);
       free(cmd);
+
+      char *output = run_substitution(expanded_cmd);
+      free(expanded_cmd);
+
       if (output) {
         sb_append(&sb, output);
         free(output);
