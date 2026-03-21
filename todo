@@ -2,3 +2,5 @@
 - Fix background exec displaying prompt
 - handling >& and <& correctly
 - signals inside heredoc
+- Fix getline
+- Fix $`variable:?word` (need to not execute command if HOM variable not set)
