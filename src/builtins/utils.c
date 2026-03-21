@@ -9,15 +9,18 @@
 
 static Builtin builtins[] = {
   { "alias", builtin_alias },
-  { "unalias", builtin_unalias },
+  { "bg", builtin_bg },
+  { "cd", builtin_cd },
   { "echo", builtin_echo },
   { "exit", builtin_exit },
   { "export", builtin_export },
-  { "type", builtin_type },
-  { "cd", builtin_cd },
-  { "set", builtin_set },
-  { "unset", builtin_unset },
+  { "fg", builtin_fg },
   { "hash", builtin_hash },
+  { "jobs", builtin_jobs },
+  { "set", builtin_set },
+  { "type", builtin_type },
+  { "unalias", builtin_unalias },
+  { "unset", builtin_unset },
   { NULL, NULL }
 };
 

@@ -21,7 +21,7 @@ void ast_free(AstNode *node) {
   case NODE_COMMAND:
     vec_foreach(Redir, redir, &node->command.redirs) {
       if (
-        redir->type == REDIRECT_IN ||
+        redir->type == REDIRECT_IN  ||
         redir->type == REDIRECT_OUT ||
         redir->type == REDIRECT_APPEND
       ) {

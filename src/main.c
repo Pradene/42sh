@@ -4,6 +4,7 @@
 #include "sb.h"
 #include "status.h"
 #include "utils.h"
+#include "jobs.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -22,6 +23,8 @@ HashTable *environ = NULL;
 HashTable *aliases = NULL;
 HashTable *hash = NULL;
 
+Jobs jobs = {0};
+
 uint8_t exit_status = 0;
 
 bool is_interactive = false;
@@ -38,6 +41,8 @@ void cleanup() {
   if (is_interactive) {
     tcsetattr(STDIN_FILENO, TCSANOW, &term_attr);
   }
+
+  jobs_cleanup(&jobs);
 
   ht_destroy(hash);
   ht_destroy(environ);
@@ -62,6 +67,10 @@ static void run(char *(*getline)()) {
     errno = 0;
     command = NULL;
     last_command = NULL;
+
+    if (is_interactive) {
+      jobs_notify(&jobs);
+    }
 
     char *line = getline();
     if (!line) {
@@ -193,11 +202,17 @@ int main(int argc, char **argv, char **envp) {
     sa.sa_handler = sigint_handler;
     sigaction(SIGINT, &sa, NULL);
 
+    sa.sa_handler = sigchld_handler;
+    sa.sa_flags   = SA_RESTART;
+    sigaction(SIGCHLD, &sa, NULL);
+
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = SIG_IGN;
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGTSTP, &sa, NULL);
+    sigaction(SIGTTIN, &sa, NULL);
+    sigaction(SIGTTOU, &sa, NULL);
 
     run(getline_from_fd);
   } else {

@@ -1,4 +1,4 @@
-- built-ins (jobs, fg, bg)
 - Parsing $(())
+- Fix background exec displaying prompt
 - handling >& and <& correctly
 - signals inside heredoc

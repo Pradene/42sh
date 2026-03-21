@@ -27,8 +27,8 @@ typedef struct Redir {
   RedirType type;
   union {
     int   fd;
-    char  *path;
-    char  *delimiter;
+    char *path;
+    char *delimiter;
   };
 } Redir;
 
@@ -39,8 +39,8 @@ typedef struct {
 
 typedef struct Assignments {
   Assignment *data;
-  size_t size;
-  size_t capacity;
+  size_t      size;
+  size_t      capacity;
 } Assignments;
 
 typedef struct Arguments {
@@ -56,9 +56,9 @@ typedef struct Redirs {
 } Redirs;
 
 typedef struct Command {
-  Arguments args;
+  Arguments   args;
   Assignments assigns;
-  Redirs redirs;
+  Redirs      redirs;
 } Command;
 
 typedef struct Operator {
@@ -68,14 +68,14 @@ typedef struct Operator {
 
 typedef struct Group {
   struct AstNode *inner;
-  Redirs redirs;
+  Redirs          redirs;
 } Group;
 
 typedef struct AstNode {
   union {
-    Command command;
+    Command  command;
     Operator operator;
-    Group group;
+    Group    group;
   };
   AstNodeType type;
 } AstNode;

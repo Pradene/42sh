@@ -13,7 +13,6 @@ void builtin_type(AstNode *node) {
   size_t argc = vec_size(&node->command.args);
 
   if (argc < 2) {
-    write(2, "type: too few arguments\n", 24);
     return;
   }
 
@@ -27,7 +26,7 @@ void builtin_type(AstNode *node) {
         printf("%s is %s\n", cmd, path);
         free(path);
       } else {
-        printf("type: %s: not found\n", cmd);
+        printf("%s: type: %s: not found\n", program_name, cmd);
       }
     }
   }

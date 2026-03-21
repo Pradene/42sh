@@ -6,12 +6,15 @@
 #include "env.h"
 #include "sb.h"
 #include "ht.h"
+#include "jobs.h"
 
 extern char       *program_name;
 
 extern HashTable  *environ; // value -> Variable *
 extern HashTable  *aliases; // value -> char *
 extern HashTable  *hash;    // value -> CacheEntry *
+
+extern Jobs        jobs;
 
 extern uint8_t     exit_status;
 extern bool        is_interactive;
@@ -52,3 +55,4 @@ void        hash_entry_free(void *value);
 void        hash_clear(HashTable *ht);
 
 void signals_reset(void);
+void sigchld_handler(int sig);

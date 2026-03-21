@@ -32,7 +32,7 @@ typedef enum {
 typedef struct {
   TokenType type;
   size_t    position;
-  char      *s;
+  char     *s;
 } Token;
 
 const char *token_type_str(const TokenType type);

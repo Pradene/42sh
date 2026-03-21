@@ -36,14 +36,15 @@ void builtin_cd(AstNode *node) {
       path = variable;
     }
   } else {
-    path = node->command.args.data[1];
-    if (!strcmp("-", path)) {
+    if (!strcmp("-", node->command.args.data[1])) {
       char *variable = env_find(environ, "OLDPWD");
       if (!variable) {
         fprintf(stderr, "%s: cd: OLDPWD not set\n", program_name);
       } else {
         path = variable;
       }
+    } else {
+      path = node->command.args.data[1];
     }
   }
 

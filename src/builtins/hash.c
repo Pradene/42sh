@@ -63,7 +63,7 @@ void builtin_hash(AstNode *node) {
   for (size_t i = opt_end; i < argc; ++i) {
     char *path = find_command_path(args[i]);
     if (!path) {
-      fprintf(stderr, "hash: %s: not found\n", args[i]);
+      fprintf(stderr, "%s: hash: %s: not found\n", program_name, args[i]);
       exit_status = 1;
     } else {
       hash_insert(hash, args[i], path);

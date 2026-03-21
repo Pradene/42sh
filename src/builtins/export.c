@@ -19,7 +19,7 @@ void builtin_export(AstNode *node) {
     char *arg = args[i];
 
     if (!(isalpha(arg[0]) || arg[0] == '_')) {
-      fprintf(stderr, "export: %s: not a valid identifier\n", arg);
+      fprintf(stderr, "%s: export: %s: not a valid identifier\n", program_name, arg);
       continue;
     }
 

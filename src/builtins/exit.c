@@ -35,13 +35,13 @@ void builtin_exit(AstNode *node) {
   fprintf(stderr, "exit\n");
 
   if (argc > 2) {
-    fprintf(stderr, "exit: too many arguments\n");
+    fprintf(stderr, "%s: exit: too many arguments\n", program_name);
     return;
   }
 
   if (argc == 2) {
     if (!is_numeric(args[1])) {
-      fprintf(stderr, "exit: numeric argument required\n");
+      fprintf(stderr, "%s: exit: %s: numeric argument required\n", program_name, args[1]);
       cleanup();
       exit(2);
     }
@@ -49,7 +49,7 @@ void builtin_exit(AstNode *node) {
     errno = 0;
     long long value = strtoll(args[1], NULL, 10);
     if (errno == ERANGE) {
-      fprintf(stderr, "exit: numeric argument required\n");
+      fprintf(stderr, "%s: exit: %s: numeric argument required\n", program_name, args[1]);
       cleanup();
       exit(2);
     }
