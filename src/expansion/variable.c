@@ -91,50 +91,54 @@ static void expand_remove_prefix(StringBuffer *sb, const char *value, const char
   }
 }
 
-static void expand_default_op(StringBuffer *sb, const char *name, char op, bool colon, const char *word) {
+static bool expand_default_op(StringBuffer *sb, const char *name, char op, bool colon, const char *word) {
   const char *value = env_find(environ, name);
   bool is_unset = (value == NULL);
   bool is_empty = (value != NULL && value[0] == '\0');
   bool condition = colon ? (is_unset || is_empty) : is_unset;
 
   switch (op) {
-    case '-':
-      if (condition) {
-        char *expanded = expand_variable(word);
-        sb_append(sb, expanded);
-        free(expanded);
-      } else {
-        sb_append(sb, value);
-      }
-      break;
-    case '=':
-      if (condition) {
-        char *expanded = expand_variable(word);
-        Variable v = { .content = strdup(expanded), .exported = false, .readonly = false };
-        ht_insert(environ, name, &v);
-        sb_append(sb, expanded);
-        free(expanded);
-      } else {
-        sb_append(sb, value);
-      }
-      break;
-    case '?':
-      if (condition) {
-        char *expanded = expand_variable(word);
-        fprintf(stderr, "%s: %s: %s\n", program_name, name, expanded[0] ? expanded : "parameter null or not set");
-        free(expanded);
-      } else {
-        sb_append(sb, value);
-      }
-      break;
-    case '+':
-      if (!condition) {
-        char *expanded = expand_variable(word);
-        sb_append(sb, expanded);
-        free(expanded);
-      }
-      break;
+  case '-':
+    if (condition) {
+      char *expanded = expand_variable(word);
+      sb_append(sb, expanded);
+      free(expanded);
+    } else {
+      sb_append(sb, value);
+    }
+    break;
+  case '=':
+    if (condition) {
+      char *expanded = expand_variable(word);
+      Variable v = { .content = strdup(expanded), .exported = false, .readonly = false };
+      ht_insert(environ, name, &v);
+      sb_append(sb, expanded);
+      free(expanded);
+    } else {
+      sb_append(sb, value);
+    }
+    break;
+  case '?':
+    if (condition) {
+      char *expanded = expand_variable(word);
+      fprintf(stderr, "%s: %s: %s\n", program_name, name, expanded[0] ? expanded : "parameter null or not set");
+      free(expanded);
+      exit_status = 1;
+      return false;
+    } else {
+      sb_append(sb, value);
+    }
+    break;
+  case '+':
+    if (!condition) {
+      char *expanded = expand_variable(word);
+      sb_append(sb, expanded);
+      free(expanded);
+    }
+    break;
   }
+
+  return true;
 }
 
 // $`name`         -> simple variable
@@ -146,7 +150,7 @@ static void expand_default_op(StringBuffer *sb, const char *name, char op, bool 
 // $`name:=word`   -> assign default
 // $`name:?word`   -> error if unset
 // $`name:+word`   -> alternate value
-static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
+static bool expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
   ++(*i); // skip '`'
 
   // $`#name` — length
@@ -155,7 +159,7 @@ static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
     char *name = collect_name_until_backtick(s, i);
     expand_length(sb, name);
     free(name);
-    return;
+    return true;
   }
 
   // collect name
@@ -180,6 +184,7 @@ static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
       }
     }
     free(name);
+    return true;
 
   } else if (s[*i] == '%') {
     // $`name%pat` or $`name%%pat`
@@ -197,6 +202,7 @@ static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
     
     free(pattern);
     free(name);
+    return true;
   
   } else if (s[*i] == '#') {
     // $`name#pat`
@@ -208,6 +214,7 @@ static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
     }
     free(pattern);
     free(name);
+    return true;
     
   } else if (s[*i] == ':') {
     // $`name:-word`, $`name:=word`, $`name:?word`, $`name:+word`
@@ -215,9 +222,10 @@ static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
     bool colon = true;
     char op = s[(*i)++];
     char *word = collect_name_until_backtick(s, i);
-    expand_default_op(sb, name, op, colon, word);
+    bool expanded = expand_default_op(sb, name, op, colon, word);
     free(word);
     free(name);
+    return expanded;
 
   } else {
     // fallback — just print as-is
@@ -225,14 +233,17 @@ static void expand_backtick(StringBuffer *sb, const char *s, size_t *i) {
     sb_append_char(sb, '`');
     sb_append(sb, name);
     free(name);
+    return true;
   }
 }
 
-static void expand_dollar(StringBuffer *sb, const char *s, size_t *i) {
+static bool expand_dollar(StringBuffer *sb, const char *s, size_t *i) {
   ++(*i); // skip '$'
 
   if (s[*i] == '`') {
-    expand_backtick(sb, s, i);
+    if (!expand_backtick(sb, s, i)) {
+      return false;
+    }
 
   } else if (isalpha((unsigned char)s[*i]) || s[*i] == '_') {
     expand_simple_variable(sb, s, i);
@@ -243,6 +254,8 @@ static void expand_dollar(StringBuffer *sb, const char *s, size_t *i) {
   } else {
     sb_append_char(sb, '$');
   }
+
+  return true;
 }
 
 static char *expand_variable(const char *s) {
@@ -258,7 +271,9 @@ static char *expand_variable(const char *s) {
       expand_tilde(&sb);
       ++i;
     } else if (s[i] == '$') {
-      expand_dollar(&sb, s, &i);
+      if (!expand_dollar(&sb, s, &i)) {
+        return NULL;
+      }
     } else {
       sb_append_char(&sb, s[i++]);
     }
@@ -267,9 +282,9 @@ static char *expand_variable(const char *s) {
   return sb_as_cstr(&sb);
 }
 
-void variable_expansion(AstNode *node) {
+bool variable_expansion(AstNode *node) {
   if (!node) {
-    return;
+    return false;
   }
 
   switch (node->type) {
@@ -278,7 +293,7 @@ void variable_expansion(AstNode *node) {
   case NODE_OR:
   case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    return;
+    break;
 
   case NODE_BRACE:
   case NODE_PAREN:
@@ -290,10 +305,11 @@ void variable_expansion(AstNode *node) {
       if (expanded) {
         free(redir->path);
         redir->path = expanded;
+      } else {
+        return false;
       }
     }
-
-    return;
+    break;
 
   case NODE_COMMAND:
     vec_foreach(char *, arg, &node->command.args) {
@@ -301,6 +317,8 @@ void variable_expansion(AstNode *node) {
       if (expanded) {
         free(*arg);
         *arg = expanded;
+      } else {
+        return false;
       }
     }
 
@@ -312,9 +330,12 @@ void variable_expansion(AstNode *node) {
       if (expanded) {
         free(redir->path);
         redir->path = expanded;
+      } else {
+        return false;
       }
     }
-
-    return;
+    break;
   }
+
+  return true;
 }

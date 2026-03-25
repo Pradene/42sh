@@ -36,7 +36,7 @@ char *getline_from_string();
 
 char *expand_alias(const char *src);
 
-void variable_expansion(AstNode *node);
+bool variable_expansion(AstNode *node);
 void quotes_removal(AstNode *node);
 void word_splitting(AstNode *node);
 void command_substitution(AstNode *node);

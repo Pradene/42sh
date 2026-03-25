@@ -495,14 +495,8 @@ void execute_command(AstNode *node) {
       execute_command(node->operator.right);
     }
     return;
-  case NODE_PIPE: {
-    execute_pipe(node);
-    return;
-  }
+  case NODE_PIPE:
   case NODE_BACKGROUND:
-    execute_background(node->operator.left);
-    execute_command(node->operator.right);
-    return;
   case NODE_SEMICOLON:
     execute_command(node->operator.left);
     execute_command(node->operator.right);
@@ -514,6 +508,12 @@ void execute_command(AstNode *node) {
     execute_subshell(node);
     return;
   case NODE_COMMAND:
+    command_substitution(node);
+    if (!variable_expansion(node)) {
+      return;
+    }
+    word_splitting(node);
+    quotes_removal(node);
     execute_simple_command(node);
     return;
   }

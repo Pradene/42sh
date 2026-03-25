@@ -30,7 +30,6 @@ static char *run_substitution(char *cmd) {
     free(cmd);
 
     if (status == OK) {
-      expand_command(node);
       execute_command(node);
       ast_free(node);
     }
