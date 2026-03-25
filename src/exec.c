@@ -477,44 +477,62 @@ void execute_background(AstNode *node) {
   }
 }
 
-void execute_command(AstNode *node) {
+bool execute_command(AstNode *node) {
   if (!node) {
-    return;
+    return true;
   }
 
   switch (node->type) {
   case NODE_AND:
-    execute_command(node->operator.left);
+    if (!execute_command(node->operator.left)) {
+      return false;
+    }
     if (exit_status == 0) {
-      execute_command(node->operator.right);
+      if (!execute_command(node->operator.right)) {
+        return false;
+      }
     }
-    return;
+    return true;
   case NODE_OR:
-    execute_command(node->operator.left);
-    if (exit_status != 0) {
-      execute_command(node->operator.right);
+    if (!execute_command(node->operator.left)) {
+      return false;
     }
-    return;
+    if (exit_status != 0) {
+      if (!execute_command(node->operator.right)) {
+        return false;
+      }
+    }
+    return true;
   case NODE_PIPE:
-  case NODE_BACKGROUND:
   case NODE_SEMICOLON:
-    execute_command(node->operator.left);
+    if (!execute_command(node->operator.left)) {
+      return false;
+    }
+    if (!execute_command(node->operator.right)) {
+      return false;
+    }
+    return true;
+  case NODE_BACKGROUND:
+    if (!execute_command(node->operator.left)) {
+      return false;
+    }
     execute_command(node->operator.right);
-    return;
+    return true;
   case NODE_BRACE:
-    execute_command(node->group.inner);
-    return;
+    return execute_command(node->group.inner);
   case NODE_PAREN:
     execute_subshell(node);
-    return;
+    return true;
   case NODE_COMMAND:
     command_substitution(node);
     if (!variable_expansion(node)) {
-      return;
+      return false;
     }
     word_splitting(node);
     quotes_removal(node);
     execute_simple_command(node);
-    return;
+    return true;
   }
+  
+  return true;
 }

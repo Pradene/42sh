@@ -27,7 +27,7 @@ void sigint_handler(int code);
 
 bool apply_redirs(Redirs *redirs);
 void apply_assignments(Assignments *assignments);
-void execute_command(AstNode *node);
+bool execute_command(AstNode *node);
 
 char *find_command_path(const char *cmd);
 
