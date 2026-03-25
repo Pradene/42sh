@@ -75,7 +75,7 @@ Token next_token(const char *s, size_t *i) {
     for (size_t j = 0; operators[j].s != NULL; j++) {
       if (!strncmp(operators[j].s, s + *i, operators[j].length)) {
         *i += operators[j].length;
-        return (Token){operators[j].type, *i, NULL};
+        return (Token){operators[j].type, start, NULL};
       }
     }
 

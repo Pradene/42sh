@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
+#include <limits.h>
 
 static StatusCode parse_redir(ParserState *state, Redir *redir);
 static StatusCode parse_simple_command(ParserState *state, AstNode **root);
@@ -87,10 +89,15 @@ static bool is_assignment(const char *token) {
 }
 
 static bool is_valid_fd(const char *s, int *fd) {
+  if (!s || !isdigit((unsigned char)s[0])) {
+    return false;
+  }
+
   char *end;
+  errno = 0;
   long value = strtol(s, &end, 10);
 
-  if (*end != '\0') {
+  if (*end != '\0' || errno == ERANGE || value < 0 || value > INT_MAX) {
     return false;
   }
 
@@ -155,14 +162,14 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
     return UNEXPECTED_TOKEN;
   }
 
-  Token op_token;
-  StatusCode status = parser_peek(state, &op_token);
+  Token token;
+  StatusCode status = parser_peek(state, &token);
   if (status != OK) {
     return status;
   }
 
   RedirType type;
-  switch (op_token.type) {
+  switch (token.type) {
   case TOKEN_REDIRECT_IN:
     type = REDIRECT_IN;
     break;
@@ -191,25 +198,26 @@ static StatusCode parse_redir(ParserState *state, Redir *redir) {
     return UNEXPECTED_TOKEN;
   }
 
-  Token word_token;
-  status = parser_peek(state, &word_token);
+  status = parser_peek(state, &token);
   if (status != OK) {
     return status;
   }
 
   redir->type = type;
+  redir->src_fd = -1;
 
   if (type == REDIRECT_IN_FD || type == REDIRECT_OUT_FD) {
-    if (!is_valid_fd(word_token.s, &redir->fd)) {
+    if (!is_valid_fd(token.s, &redir->fd)) {
       return UNEXPECTED_TOKEN;
     }
+    free(token.s);
   } else if (type == REDIRECT_HEREDOC) {
-    redir->delimiter = word_token.s;
+    redir->delimiter = token.s;
     if (!redir->delimiter) {
       return MEM_ALLOCATION_FAILED;
     }
   } else {
-    redir->path = word_token.s;
+    redir->path = token.s;
     if (!redir->path) {
       return MEM_ALLOCATION_FAILED;
     }
@@ -247,7 +255,33 @@ static StatusCode parse_simple_command(ParserState *state, AstNode **root) {
         return last_status;
       }
 
-      if (!is_assignment_ended && is_assignment(token.s)) {
+      int fd;
+      if (is_valid_fd(token.s, &fd)) {
+        parser_advance(state);
+        
+        Token next;
+        last_status = parser_peek(state, &next);
+        if (last_status != OK) {
+          free(token.s);
+          ast_free(node);
+          return last_status;
+        }
+
+        if (is_redirect_token(state)) {
+          Redir redir = {0};
+          last_status = parse_redir(state, &redir);
+          if (last_status != OK) {
+            free(token.s);
+            ast_free(node);
+            return last_status;
+          }
+          redir.src_fd = fd;
+          vec_push(&node->command.redirs, redir);
+          free(token.s);
+        } else {
+          vec_push(&node->command.args, token.s);
+        }
+      } else if (!is_assignment_ended && is_assignment(token.s)) {
         char *equal = strchr(token.s, '=');
         char *name = strndup(token.s, equal - token.s);
         char *value = strdup(equal + 1);

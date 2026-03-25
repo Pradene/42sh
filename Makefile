@@ -1,6 +1,6 @@
 NAME     = 42sh
 CC       = cc
-CFLAGS   = -Wall -Wextra -Werror -Iinclude -MMD -MP -g
+CFLAGS   = -Wall -Wextra -Werror -Iinclude -lreadline -MMD -MP -g
 SRCS_DIR = src
 OBJS_DIR = obj
 

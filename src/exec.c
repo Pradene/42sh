@@ -82,12 +82,28 @@ void apply_assignments(Assignments *assignments) {
   }
 }
 
+static int default_fd(RedirType type) {
+  switch (type) {
+  case REDIRECT_IN:
+  case REDIRECT_HEREDOC:
+  case REDIRECT_IN_FD:
+    return STDIN_FILENO;
+  case REDIRECT_OUT:
+  case REDIRECT_APPEND:
+  case REDIRECT_OUT_FD:
+    return STDOUT_FILENO;
+  default:
+    return -1;
+  }
+}
+
 bool apply_redirs(Redirs *redirs) {
   if (!redirs || !vec_size(redirs)) {
     return true;
   }
 
   vec_foreach(Redir, redir, redirs) {
+    int dst = redir->src_fd == -1 ? default_fd(redir->type) : redir->src_fd;
     int fd = -1;
 
     switch (redir->type) {
@@ -97,11 +113,11 @@ bool apply_redirs(Redirs *redirs) {
         perror(redir->path);
         return false;
       }
-      dup2(fd, STDIN_FILENO);
+      dup2(fd, dst);
       close(fd);
       break;
     case REDIRECT_HEREDOC:
-      dup2(redir->fd, STDIN_FILENO);
+      dup2(redir->fd, dst);
       close(redir->fd);
       break;
     case REDIRECT_OUT:
@@ -110,7 +126,7 @@ bool apply_redirs(Redirs *redirs) {
         perror(redir->path);
         return false;
       }
-      dup2(fd, STDOUT_FILENO);
+      dup2(fd, dst);
       close(fd);
       break;
     case REDIRECT_APPEND:
@@ -119,17 +135,12 @@ bool apply_redirs(Redirs *redirs) {
         perror(redir->path);
         return false;
       }
-      dup2(fd, STDOUT_FILENO);
+      dup2(fd, dst);
       close(fd);
       break;
     case REDIRECT_OUT_FD:
-      if (dup2(redir->fd, STDOUT_FILENO) == -1) {
-        perror("dup2");
-        return false;
-      }
-      break;
     case REDIRECT_IN_FD:
-      if (dup2(redir->fd, STDIN_FILENO) == -1) {
+      if (dup2(redir->fd, dst) == -1) {
         perror("dup2");
         return false;
       }
@@ -152,61 +163,57 @@ void execute_simple_command(AstNode *node) {
     return;
   }
 
-  char *path = NULL;
-  
-  CacheEntry *cached = hash_get(hash, node->command.args.data[0]);
-  if (cached) {
-    path = cached->path;
-  } else {
-    path = find_command_path(node->command.args.data[0]);
-    if (!path) {
-      fprintf(stderr, "42sh: %s: command not found\n", node->command.args.data[0]);
-      exit_status = 127;
-      return;
-    }
-    hash_insert(hash, node->command.args.data[0], path);
-    free(path);
-
-    path = hash_get(hash, node->command.args.data[0])->path;
-  }
-
   pid_t pid = fork();
   if (pid < 0) {
     return;
   } else if (pid == 0) {
-    char **args = node->command.args.data;
-
     setpgid(0, 0);
     signals_reset();
 
     apply_assignments(&node->command.assigns);
     if (!apply_redirs(&node->command.redirs)) {
+      cleanup();
       exit(EXIT_FAILURE);
+    }
+
+    char *path = NULL;
+    CacheEntry *cached = hash_get(hash, node->command.args.data[0]);
+    if (cached) {
+      path = cached->path;
+    } else {
+      path = find_command_path(node->command.args.data[0]);
+    }
+
+    if (!path) {
+      fprintf(stderr, "42sh: %s: command not found\n", node->command.args.data[0]);
+      cleanup();
+      exit(127);
     }
 
     vec_push(&node->command.args, NULL);
-
     char **envp = env_to_cstr_array(environ);
     if (!envp) {
+      cleanup();
       exit(EXIT_FAILURE);
     }
 
-    execve(path, args, envp);
+    execve(path, node->command.args.data, envp);
+    
     perror("execve");
-
-    for (size_t i = 0; envp[i]; ++i) {
-      free(envp[i]);
-    }
-    free(envp);
-
     cleanup();
-
     exit(EXIT_FAILURE);
   } else {
-    setpgid(pid, pid);
+    if (!hash_get(hash, node->command.args.data[0])) {
+      char *path = find_command_path(node->command.args.data[0]);
+      if (path) {
+        hash_insert(hash, node->command.args.data[0], path);
+        free(path);
+      }
+    }
 
+    setpgid(pid, pid);
     Job *job = job_add(&jobs, pid, pid, node->command.args.data[0]);
-    
+
     if (is_interactive) {
       signal(SIGTTOU, SIG_IGN);
       tcsetpgrp(STDIN_FILENO, pid);
@@ -214,7 +221,7 @@ void execute_simple_command(AstNode *node) {
 
     int status = 0;
     waitpid(pid, &status, WUNTRACED);
-    
+
     if (is_interactive) {
       tcsetpgrp(STDIN_FILENO, getpgrp());
       signal(SIGTTOU, SIG_DFL);
